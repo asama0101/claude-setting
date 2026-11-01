@@ -142,10 +142,6 @@ hook のスクリプトが見つからない。次の 2 点を確認する。
 - `Test-Path "$HOME\.claude\hooks\readme_guard.py"` が `True` になること。`False` なら、手順 2 をやり直す。
 - Git Bash で `echo $HOME` を実行し、`/c/Users/<ユーザー名>` の形になっていること。環境変数 `HOME` を別の場所に変えていると、`~\.claude` を指さなくなる。
 
-## 開発者向け
-
-更新・公開の手順は [docs/development.md](docs/development.md) を見る。
-
 ## ライセンス・連絡先
 
 `skills/ponytail*` は第三者の作品で、MIT ライセンスである。上流は <https://github.com/DietrichGebert/ponytail>。著作権表示とライセンス全文は [skills/NOTICE](skills/NOTICE) にある。
