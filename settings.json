@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git rev-parse *)",
+      "Bash(git branch)",
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)"
+    ],
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git tag *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr merge *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean *)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore *)",
+      "Bash(git checkout .)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Edit(**/.env)",
+      "Read(**/.env.*)",
+      "Edit(**/.env.*)",
+      "Read(**/.ssh/**)",
+      "Edit(**/.ssh/**)",
+      "Read(**/.claude/.credentials.json)",
+      "Edit(**/.claude/.credentials.json)",
+      "Read(**/.git-credentials)",
+      "Edit(**/.git-credentials)",
+      "Read(**/.pypirc)",
+      "Edit(**/.pypirc)",
+      "Read(**/.azure/**)",
+      "Edit(**/.azure/**)",
+      "Read(**/*.key)",
+      "Edit(**/*.key)",
+      "Read(**/*.pem)",
+      "Edit(**/*.pem)",
+      "Read(**/id_rsa)",
+      "Edit(**/id_rsa)",
+      "Read(**/authorized_keys)",
+      "Edit(**/authorized_keys)",
+      "Read(**/id_ed25519)",
+      "Edit(**/id_ed25519)",
+      "Read(**/id_ecdsa)",
+      "Edit(**/id_ecdsa)",
+      "Read(**/.aws/credentials)",
+      "Edit(**/.aws/credentials)",
+      "Read(**/.config/gcloud/**)",
+      "Edit(**/.config/gcloud/**)",
+      "Read(**/.netrc)",
+      "Edit(**/.netrc)",
+      "Read(**/.npmrc)",
+      "Edit(**/.npmrc)",
+      "Read(**/.docker/config.json)",
+      "Edit(**/.docker/config.json)",
+      "Read(**/.kube/config)",
+      "Edit(**/.kube/config)",
+      "Bash(sudo *)",
+      "Read(**/*.ppk)",
+      "Edit(**/*.ppk)",
+      "Read(**/*.pfx)",
+      "Edit(**/*.pfx)",
+      "Read(**/*.p12)",
+      "Edit(**/*.p12)",
+      "Read(**/AppData/Local/Microsoft/Credentials/**)",
+      "Read(**/AppData/Roaming/Microsoft/Credentials/**)",
+      "Read(**/AppData/Roaming/Microsoft/Protect/**)",
+      "Read(**/AppData/Roaming/gcloud/**)",
+      "Edit(**/AppData/Roaming/gcloud/**)",
+      "Read(**/System32/config/SAM)",
+      "Read(**/System32/config/SYSTEM)",
+      "Read(**/System32/config/SECURITY)",
+      "Read(**/NTUSER.DAT)",
+      "Edit(**/Windows/System32/**)",
+      "Edit(**/Windows/SysWOW64/**)"
+    ],
+    "defaultMode": "auto",
+    "disableBypassPermissionsMode": "disable"
+  },
+  "model": "sonnet",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/readme_guard.py\" record",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/readme_guard.py\" check",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/uncommitted_warn.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "py \"$HOME/.claude/statusline.py\"",
+    "refreshInterval": 30
+  },
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true
+  },
+  "language": "japanese",
+  "effortLevel": "high",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high"
+    }
+  },
+  "tui": "fullscreen",
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "attribution": {
+    "sessionUrl": false
+  },
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: assume private unless the remote host and repo name indicate otherwise, or a visibility check in the transcript shows public",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: None configured",
+      "**Default / protected branches**: unknown",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine or CI runner with open internet",
+      "**Source control**: The trusted repo and its remote(s) only (no additional orgs configured) — as scoped by the Trusted repo and Repository visibility entries above",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited — e.g. matches `prod-db`, not `producer`)",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development",
+      "**Trusted repo**: The git repository the agent started in and its configured remote(s), if any are added later",
+      "**Org-specific CLIs**: None configured"
+    ]
+  }
+}
