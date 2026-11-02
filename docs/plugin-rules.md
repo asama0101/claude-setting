@@ -187,7 +187,7 @@ Claude Code のスキル・プラグインを新規に作る・変更すると�
 
 - **規則**: リポジトリは二重構造（`plugins/<名前>/` がプラグイン本体、marketplace.json の `source` が `./plugins/<名前>`）を既定とする。tests・docs・見本はプラグイン本体の外（リポジトリ直下）に置く。リポジトリ直下をプラグインにするのは、tests・docs・見本がなく、配布物に開発物が入っても困らない極小のものだけにし、その理由を README に残す（`source` は、公式が明記している `"."` にする）。
 - 参考（公式の事実）: 公式は、`plugins/<名前>/` に置き `source` を `"./plugins/<名前>"` と書く例を示している（既定や推奨とは書いていない）。相対パスの `source` は、marketplace のルート（`.claude-plugin/` を含むディレクトリ）から書く。`..` を含むと `claude plugin validate` がエラーにする。`./` で始まる必要があり、`"."` だけの `source` は「ルート自身」を指す（marketplace-reference に明記）。`"./"` は `./` で始まるので通ると読めるが、明記はない。二重構造を既定にするのは社内基準である。
-- README は、リポジトリ直下に 1 つだけ置く。二重構造でも `plugins/<名前>/README.md` は作らない。marketplace の追加手順と利用者向けの詳細（H1・H4・A8・D2・H3・B2）は直下の README に書き、開発者向けの案内（tests・docs、E5 の読み込み方）は `docs/development.md` に書いてリンクだけ張る。プラグインが複数あるときは、直下の README の中で節を分ける。
+- README は、リポジトリ直下に 1 つだけ置く。二重構造でも `plugins/<名前>/README.md` は作らない。marketplace の追加手順と利用者向けの詳細（H1・H4・A8・D2・H3・B2）は直下の README に書く。開発者向けの案内（tests・docs、E5 の読み込み方）は README に書かない。プラグインが複数あるときは、直下の README の中で節を分ける。
 - **理由**: 二重構造なら、開発物がインストール先のキャッシュに入らない。構成の規則（E6）も 1 種類で書ける。README を 1 つにすると、同じ情報が複数の README に分かれて食い違うことがない（readme-rules.md の 1・4）。
 
 ### E4. marketplace.json（必須）〔公式〕
