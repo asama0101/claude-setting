@@ -4,7 +4,11 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
+import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -75,6 +79,63 @@ def test_session_start_上流のない作業ブランチは既定ブランチと
     r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
     for text in start_text(r):
         assert "リモート差: ahead 1・behind 0（上流なし。origin/main と比較）" in text
+
+
+@pytest.fixture
+def silent_remote():
+    """接続は受けるが、何も返さないサーバーの URL。"""
+    held = []
+    server = socket.socket()
+    server.bind(("127.0.0.1", 0))
+    server.listen(8)
+    stop = threading.Event()
+
+    def accept_loop():
+        server.settimeout(0.2)
+        while not stop.is_set():
+            try:
+                held.append(server.accept()[0])
+            except OSError:
+                continue
+
+    thread = threading.Thread(target=accept_loop, daemon=True)
+    thread.start()
+    yield f"http://127.0.0.1:{server.getsockname()[1]}/r.git"
+    stop.set()
+    thread.join()
+    for c in held:
+        c.close()
+    server.close()
+
+
+def test_session_start_リモートが応答しなくても時間内に終わり取得できずと明記する(silent_remote, make_repo, git, env):
+    repo = make_repo(remote=None)
+    git(repo.path, "remote", "add", "origin", silent_remote)
+    started = time.monotonic()
+    try:
+        r = subprocess.run(
+            [sys.executable, str(SCRIPT), "session-start"], env=env, capture_output=True, timeout=30,
+            input=json.dumps({"session_id": "s", "cwd": str(repo.path)}).encode("utf-8"), check=False,
+        )
+    except subprocess.TimeoutExpired:
+        pytest.fail("30秒たっても終わらない（git fetch の子プロセスがパイプを握っている）")
+    assert time.monotonic() - started < 15
+    assert "取得できず" in json.loads(r.stdout.decode("utf-8"))["systemMessage"]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="taskkill は Windows だけ")
+def test_taskkillが使えなくても_fetchは時間内にFalseを返す(silent_remote, make_repo, git, gf, monkeypatch):
+    repo = make_repo(remote=None)
+    git(repo.path, "remote", "add", "origin", silent_remote)
+    monkeypatch.setattr(gf, "FETCH_TIMEOUT", 1)
+
+    def no_taskkill(*args, **kwargs):
+        raise FileNotFoundError("taskkill")
+
+    monkeypatch.setattr(gf.subprocess, "run", no_taskkill)
+    started = time.monotonic()
+    assert gf.fetch(str(repo.path)) is False
+    assert time.monotonic() - started < 10
 
 
 def test_session_start_リモートがなければ差を出さない(make_repo, hook):
