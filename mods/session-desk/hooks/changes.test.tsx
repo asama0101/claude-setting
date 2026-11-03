@@ -137,6 +137,24 @@ test('the changes tab lists edited files once, for Edit, Write and NotebookEdit 
   await ui.unmount()
 })
 
+test('file entries are borderless, and the opened one is marked with ▸', async ($, on) => {
+  fakeEngine(on, { 'D:/p/a.py': { text: 'x' }, 'D:/p/b.py': { text: 'x' } }, { 'D:/p/a.py': DIFF, 'D:/p/b.py': DIFF })
+  await $.classic.PostToolUse(edited('Edit', 'D:/p/a.py'))
+  await $.classic.PostToolUse(edited('Edit', 'D:/p/b.py'))
+  const ui = await open($)
+  const entry = async (key: string) => JSON.stringify(await ui.find({ key }))
+  expect(await entry('change-0')).toContain('"plain":true')
+  expect(await entry('change-0')).not.toContain('"variant"')
+  expect(await entry('change-1')).toContain('"label":"D:/p/b.py"')
+  await ui.press({ key: 'change-1' })
+  expect(await entry('change-1')).toContain('"label":"▸ D:/p/b.py"')
+  // 選んだファイルの ▸ はアクセント色。選んでいないファイルには色の記号がない。
+  expect(await entry('change-1')).toContain('"color":"suggestion"')
+  expect(await entry('change-0')).not.toContain('"color"')
+  expect(await entry('change-0')).toContain('"label":"D:/p/a.py"')
+  await ui.unmount()
+})
+
 test('selecting a tracked file shows its diff, additions green and deletions red', async ($, on) => {
   fakeEngine(on, { 'D:/p/src/a.py': { text: 'x' } }, { 'D:/p/src/a.py': DIFF })
   await $.classic.PostToolUse(edited('Edit', 'D:/p/src/a.py'))

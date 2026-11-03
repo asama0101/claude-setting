@@ -33,7 +33,7 @@ const viewed = atom({ plugin: 'session-desk', key: 'viewed' } as const, null as 
 const TABS: readonly { id: Tab; label: string }[] = [
   { id: 'history', label: '履歴' },
   { id: 'quick', label: '定型文' },
-  { id: 'changes', label: '変更' },
+  { id: 'changes', label: '編集ファイル' },
 ]
 
 type Change = NonNullable<ChangeView>['change']
@@ -182,57 +182,71 @@ export const register: Register = on => {
       const phrases = await read($, quick)
       const chosen = await read($, selected)
       body = (
-        <Box flexDirection="column">
+        <Box flexDirection="column" gap={1}>
           {sent.length === 0 && <Text dimColor>なし</Text>}
           {sent
             .map((text, i) => ({ text, n: i + 1 }))
             .reverse()
-            .map(({ text, n }) => (
-              <Box flexDirection="column">
-                <Text>{`${n}. ${preview(text)}`}</Text>
-                <Box gap={1}>
-                  <Button
-                    key={`history-${n}`}
-                    label="全文"
-                    variant="secondary"
-                    onPress={() => update($, selected, now => (now === n ? null : n))}
-                  />
-                  <Button
-                    key={`history-add-${n}`}
-                    label="定型文に追加"
-                    variant="primary"
-                    onPress={() => saveQuick($, addQuick(phrases, text))}
-                  />
+            .map(({ text, n }) => {
+              // 開いているかの判定は 1 回にして、label と見た目で食い違わないようにする。
+              const isOpen = chosen === n
+              const mark = isOpen ? '▴' : '▾'
+              const word = isOpen ? '短く' : '全文'
+
+              return (
+                <Box flexDirection="column">
+                  <Text>{`${n}. ${isOpen ? stripControl(text) : preview(text)}`}</Text>
+                  <Box gap={2}>
+                    <Button
+                      key={`history-${n}`}
+                      plain
+                      label={`${mark} ${word}`}
+                      onPress={() => update($, selected, now => (now === n ? null : n))}
+                    >
+                      <Text color="suggestion">{mark}</Text> {word}
+                    </Button>
+                    <Button
+                      key={`history-add-${n}`}
+                      plain
+                      label="＋ 定型文に追加"
+                      onPress={() => saveQuick($, addQuick(phrases, text))}
+                    >
+                      <Text color="suggestion">＋</Text> 定型文に追加
+                    </Button>
+                  </Box>
                 </Box>
-                {chosen === n && <Text>{stripControl(text)}</Text>}
-              </Box>
-            ))}
+              )
+            })}
         </Box>
       )
     } else if (current === 'quick') {
       const phrases = await read($, quick)
       body = (
-        <Box flexDirection="column">
+        <Box flexDirection="column" gap={1}>
           {phrases.length === 0 && <Text dimColor>なし</Text>}
           {phrases.map((text, i) => (
             <Box flexDirection="column">
               <Text>{stripControl(text)}</Text>
-              <Box gap={1}>
+              <Box gap={2}>
                 <Button
                   key={`quick-${i}`}
-                  label="送信"
-                  variant="primary"
+                  plain
+                  label="▶ 送信"
                   onPress={() => {
                     void $.prompt.submit({ text })
                   }}
-                />
+                >
+                  <Text color="suggestion">▶</Text> 送信
+                </Button>
                 <Button
                   key={`quick-del-${i}`}
-                  label="削除"
-                  variant="secondary"
+                  plain
                   dimColor
+                  label="× 削除"
                   onPress={() => saveQuick($, removeQuick(phrases, i))}
-                />
+                >
+                  <Text color="error">×</Text> 削除
+                </Button>
               </Box>
             </Box>
           ))}
@@ -240,13 +254,26 @@ export const register: Register = on => {
       )
     } else {
       const files = await read($, changed)
-      const change = (await read($, viewed))?.change
+      const opened = await read($, viewed)
+      const change = opened?.change
       body = (
         <Box flexDirection="column">
           {files.length === 0 && <Text dimColor>なし</Text>}
-          {files.map((path, i) => (
-            <Button key={`change-${i}`} label={stripControl(path)} onPress={() => toggleChange($, path)} />
-          ))}
+          {files.map((path, i) => {
+            const isOpen = opened?.path === path
+
+            return (
+              <Button
+                key={`change-${i}`}
+                plain
+                label={`${isOpen ? '▸ ' : ''}${stripControl(path)}`}
+                onPress={() => toggleChange($, path)}
+              >
+                {isOpen && <Text color="suggestion">▸ </Text>}
+                {stripControl(path)}
+              </Button>
+            )
+          })}
           {change?.kind === 'note' && <Text dimColor>{change.text}</Text>}
           {change?.kind === 'diff' &&
             change.view.lines.map(line => (
@@ -261,14 +288,16 @@ export const register: Register = on => {
 
     return (
       <Box flexDirection="column">
-        <Box gap={1}>
-          {TABS.map(item => (
-            <Button
-              key={`tab-${item.id}`}
-              label={item.label}
-              onPress={() => update($, tab, () => item.id)}
-            />
-          ))}
+        <Box gap={2}>
+          {TABS.map(item =>
+            current === item.id ? (
+              <Button key={`tab-${item.id}`} plain label={`▸ ${item.label}`} onPress={() => update($, tab, () => item.id)}>
+                <Text color="suggestion">▸</Text> <Text bold>{item.label}</Text>
+              </Button>
+            ) : (
+              <Button key={`tab-${item.id}`} plain dimColor label={item.label} onPress={() => update($, tab, () => item.id)} />
+            ),
+          )}
         </Box>
         {body}
       </Box>

@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { preview } from './lib'
-import { ESC, parentOf, textsOf } from './test-kit'
+import { ESC, ancestorsOf, parentOf, textsOf } from './test-kit'
 
 const PANE = {
   plugin: 'session-desk',
@@ -57,38 +57,84 @@ test('history does not record blank prompts and passes the prompt through unchan
   await ui.unmount()
 })
 
-test('history shows 60 characters, and selecting a row shows the whole prompt', async ($, on) => {
+test('history shows 60 characters; the full-text action turns that very line into the whole prompt, and back', async ($, on) => {
   fakeEngine(on)
   const long = `${'a'.repeat(60)}${'b'.repeat(40)}`
   await send($, long)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect(await rows(ui)).toEqual([`1. ${'a'.repeat(60)}…`])
-  expect(await ui.find({ type: 'Text', text: long })).toBeUndefined()
+  expect(JSON.stringify(await ui.find({ key: 'history-1' }))).toContain('"label":"▾ 全文"')
   await ui.press({ key: 'history-1' })
-  expect((await ui.find({ type: 'Text', text: long }))?.text).toBe(long)
+  // 全文は、別の行に足さず、いま出ている行そのものが全文になる。
+  expect(await rows(ui)).toEqual([`1. ${long}`])
+  expect(JSON.stringify(await ui.find({ key: 'history-1' }))).toContain('"label":"▴ 短く"')
   await ui.press({ key: 'history-1' })
-  expect(await ui.find({ type: 'Text', text: long })).toBeUndefined()
+  expect(await rows(ui)).toEqual([`1. ${'a'.repeat(60)}…`])
   await ui.unmount()
 })
 
-test('the prompt is plain text and the actions are short bordered buttons on their own line', async ($, on) => {
+test('only one line is expanded at a time: opening another shortens the first', async ($, on) => {
+  fakeEngine(on)
+  const first = `${'a'.repeat(60)}${'b'.repeat(40)}`
+  const second = `${'c'.repeat(60)}${'d'.repeat(40)}`
+  await send($, first)
+  await send($, second)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.press({ key: 'history-1' })
+  expect(await rows(ui)).toEqual([`2. ${'c'.repeat(60)}…`, `1. ${first}`])
+  await ui.press({ key: 'history-2' })
+  expect(await rows(ui)).toEqual([`2. ${second}`, `1. ${'a'.repeat(60)}…`])
+  await ui.unmount()
+})
+
+test('the prompt is plain text; actions are borderless words on the next line, with a blank row between entries', async ($, on) => {
   fakeEngine(on)
   const long = 'x'.repeat(100)
   await send($, long)
+  await send($, 'second')
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   const tree = await ui.drawn()
   const json = JSON.stringify(tree)
-  // 文は Button の label に入れない。操作の名前は短い。
+  // 文は Button の label に入れない。操作は、枠のない（plain）短い言葉。
   expect(json).not.toContain('"label":"1. ')
-  expect(json).toContain('"label":"全文"')
-  expect(json).toContain('"label":"定型文に追加"')
-  // 2 つの操作のボタンは同じ段にあり、その段に文は入っていない。外側は縦並び。
+  expect(json).toContain('"label":"＋ 定型文に追加"')
+  for (const key of ['history-1', 'history-add-1']) {
+    const button = JSON.stringify(await ui.find({ key }))
+    expect(button).toContain('"plain":true')
+    expect(button).not.toContain('"variant"')
+    // 操作の記号はアクセント色。
+    expect(button).toContain('"color":"suggestion"')
+  }
+  // 2 つの操作は同じ段にあり、その段に文は入っていない。
   const actions = parentOf(tree, 'history-1')
   expect(parentOf(tree, 'history-add-1')).toBe(actions)
   expect(JSON.stringify(actions)).not.toContain('xxxx')
-  // 追加は目立つ色（primary）。全文は控えめ（secondary）。
-  expect(JSON.stringify(await ui.find({ key: 'history-add-1' }))).toContain('"variant":"primary"')
-  expect(JSON.stringify(await ui.find({ key: 'history-1' }))).toContain('"variant":"secondary"')
+  // 履歴の一覧は縦並びで、項目の間に空行（gap 1）がある。
+  const list = ancestorsOf(tree, 'history-1').some(
+    box => (box.props as { flexDirection?: string; gap?: number } | undefined)?.gap === 1 &&
+      (box.props as { flexDirection?: string } | undefined)?.flexDirection === 'column',
+  )
+  expect(list).toBe(true)
+  await ui.unmount()
+})
+
+test('the selected tab is marked with ▸ and drawn normally; the others are dim; the file tab is 編集ファイル', async ($, on) => {
+  fakeEngine(on)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const tab = async (key: string) => JSON.stringify(await ui.find({ key }))
+  expect(await tab('tab-history')).toContain('"label":"▸ 履歴"')
+  expect(await tab('tab-history')).not.toContain('"dimColor":true')
+  // 選択中のタブは、▸ がアクセント色で、名前が太字。
+  expect(await tab('tab-history')).toContain('"color":"suggestion"')
+  expect(await tab('tab-history')).toContain('"bold":true')
+  expect(await tab('tab-quick')).toContain('"label":"定型文"')
+  expect(await tab('tab-quick')).toContain('"dimColor":true')
+  expect(await tab('tab-changes')).toContain('"label":"編集ファイル"')
+  await ui.press({ key: 'tab-changes' })
+  expect(await tab('tab-changes')).toContain('"label":"▸ 編集ファイル"')
+  expect(await tab('tab-changes')).not.toContain('"dimColor":true')
+  expect(await tab('tab-history')).toContain('"label":"履歴"')
+  expect(await tab('tab-history')).toContain('"dimColor":true')
   await ui.unmount()
 })
 

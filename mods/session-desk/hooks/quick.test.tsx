@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { DEFAULT_QUICK, addQuick, parseQuick, removeQuick } from './lib'
-import { parentOf, textsOf } from './test-kit'
+import { ancestorsOf, parentOf, textsOf } from './test-kit'
 
 const PANE = {
   plugin: 'session-desk',
@@ -84,27 +84,38 @@ test('with an empty store the quick tab lists the three default phrases', async 
   await ui.unmount()
 })
 
-test('the phrase is plain text and the actions are short bordered buttons on their own line', async ($, on) => {
+test('the phrase is plain text; actions are borderless words on the next line, with a blank row between entries', async ($, on) => {
   fakeEngine(on)
   await start($)
   const ui = await open($)
   const tree = await ui.drawn()
   const json = JSON.stringify(tree)
-  // 文は Button の label に入れない。操作の名前は短い。
+  // 文は Button の label に入れない。操作は、枠のない（plain）短い言葉。
   for (const phrase of PHRASES) {
     expect(json).not.toContain(`"label":"${phrase}"`)
   }
-  expect(json).toContain('"label":"送信"')
-  expect(json).toContain('"label":"削除"')
+  expect(json).toContain('"label":"▶ 送信"')
+  expect(json).toContain('"label":"× 削除"')
   // 送信と削除は同じ段にあり、その段に文は入っていない。
   const actions = parentOf(tree, 'quick-1')
   expect(parentOf(tree, 'quick-del-1')).toBe(actions)
   expect(JSON.stringify(actions)).not.toContain(PHRASES[1] ?? '')
-  // 送信は目立つ色（primary）。削除は控えめ（secondary で薄い色）。
-  expect(JSON.stringify(await ui.find({ key: 'quick-1' }))).toContain('"variant":"primary"')
+  // どちらも枠なし。
+  const send = JSON.stringify(await ui.find({ key: 'quick-1' }))
+  expect(send).toContain('"plain":true')
+  expect(send).not.toContain('"variant"')
+  expect(send).toContain('"color":"suggestion"')
   const del = JSON.stringify(await ui.find({ key: 'quick-del-1' }))
-  expect(del).toContain('"variant":"secondary"')
+  expect(del).toContain('"plain":true')
   expect(del).toContain('"dimColor":true')
+  // 削除の記号は赤。
+  expect(del).toContain('"color":"error"')
+  // 定型文の一覧は縦並びで、項目の間に空行（gap 1）がある。
+  const list = ancestorsOf(tree, 'quick-1').some(
+    box => (box.props as { flexDirection?: string; gap?: number } | undefined)?.gap === 1 &&
+      (box.props as { flexDirection?: string } | undefined)?.flexDirection === 'column',
+  )
+  expect(list).toBe(true)
   await ui.unmount()
 })
 
