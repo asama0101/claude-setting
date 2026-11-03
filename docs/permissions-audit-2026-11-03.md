@@ -23,6 +23,10 @@
 | 3 | deny | `Read(**/credentials*)` を、`Read(**/credentials)`・`Read(**/credentials.json)` に絞る | 普通の文書を止めない |
 | 4 | deny | `Edit(**/.git/config)` を足す | リモートの URL や認証の設定の書き換えを防ぐ（Read の deny はあるが Edit はない） |
 
+## 判断
+
+提案 1〜4 は、反映しない（ユーザーの判断、2026-11-03）。`settings.json` は変えていない。
+
 ## 確認できなかったこと
 
 - `grep *` の allow が、Read の deny を迂回するか。公式ドキュメントが挙げる、deny の対象の Bash コマンドは、`cat`・`head`・`tail`・`sed`・`tee` と、リダイレクト（`>`・`<`）である。`grep` は挙げられていない（未検証）。
