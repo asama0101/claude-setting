@@ -25,7 +25,7 @@ Python のコードにテストを書くときに従う規則。プラグイン�
 
 - **規則**:
   - テストの依存（`pytest`・`pytest-cov`）は `requirements-dev.txt` に `==` で固定する。
-  - テストは、専用環境（plugin-rules の A1）に `requirements-dev.txt` を足した開発用の環境で実行する。配布する環境には入れない。開発者自身の環境なので、導入に A5 の承認は要らない。
+  - テストは、開発用の venv（`python-venv.md` の 1。プラグインでは 2 の専用 venv）に `requirements-dev.txt` を足した環境で実行する。配布する環境には入れない。開発者自身の環境なので、導入に 2-3 の承認は要らない。
   - pytest の設定は `pyproject.toml` の `[tool.pytest.ini_options]` に 1 か所だけ置く（pytest 9 以降は `[tool.pytest]` でもよい）。pytest の設定を含む `pytest.toml`・`pytest.ini`・`tox.ini`・`setup.cfg` を併存させない（先に見つかった 1 つだけが使われ、空の `pytest.ini` でも `pyproject.toml` の設定は無視される）。
   - `testpaths`・`addopts = ["--strict-markers", "-ra"]`・`xfail_strict = true` を書く。使うマーカー（`slow`）は、同じ設定の `markers` に登録する。未登録だと、`--strict-markers` で収集時にエラーになる。
 - **理由**: テストの実行結果を、実行環境の版で再現するため。設定が複数あると、どれが効くかが分からなくなる。〔機械: 設定ファイルの確認〕
