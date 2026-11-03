@@ -1,4 +1,4 @@
-import type { AskQuestion, DiffLine, DiffView, Explanation, ProgressItem } from '../types'
+import type { AskQuestion, DiffLine, DiffView, Explanation } from '../types'
 
 const CSI = /\u001b\[[0-9;?]*[ -/]*[@-~]/g
 const OSC = /\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)/g
@@ -82,7 +82,7 @@ export function isSecretName(path: string): boolean {
 
 const BACKSLASH = String.fromCharCode(92)
 
-export function slashes(path: string): string {
+function slashes(path: string): string {
   return path.split(BACKSLASH).join('/').replace(/\/+$/, '')
 }
 
@@ -135,41 +135,6 @@ export function allAdded(text: string, max: number): DiffView {
   const lines = rows.map((row): DiffLine => ({ kind: 'add', text: `+${row}` }))
 
   return { lines: lines.slice(0, max), truncated: lines.length > max }
-}
-
-export function progressBar(done: number, total: number): { bar: string; label: string } | null {
-  if (total <= 0) {
-    return null
-  }
-  const cells = Math.max(0, Math.min(10, Math.floor((10 * done) / total)))
-
-  return { bar: '█'.repeat(cells) + '░'.repeat(10 - cells), label: `${done}/${total}` }
-}
-
-// SPEC・計画の先頭の `---` で囲んだ部分から、status と plan を読む。plan が「（未作成）」などのときは null。
-export function parseFrontmatter(text: string): { status: string | null; plan: string | null } {
-  const block = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text)?.[1] ?? ''
-  const value = (key: string): string | null => {
-    const found = new RegExp(`^${key}:[ \t]*(.*)$`, 'm').exec(block)?.[1]?.trim()
-
-    return found === undefined || found === '' ? null : found
-  }
-  const plan = value('plan')
-
-  return { status: value('status'), plan: plan === null || plan.startsWith('（') || plan.startsWith('(') ? null : plan }
-}
-
-export function countChecks(text: string): { done: number; total: number } {
-  const boxes = [...text.matchAll(/^\s*[-*] \[( |x|X)\]/gm)]
-
-  return { done: boxes.filter(box => box[1] !== ' ').length, total: boxes.length }
-}
-
-// 入力欄の上に出す 1 件: 完了していない計画のうち、チェックがあり、更新が最も新しいもの。
-export function pickCurrent(items: readonly ProgressItem[]): ProgressItem | undefined {
-  const open = items.filter(item => item.total > 0 && item.planStatus !== '完了')
-
-  return open.reduce<ProgressItem | undefined>((best, item) => (best === undefined || item.mtime > best.mtime ? item : best), undefined)
 }
 
 const MASK = '[masked]'

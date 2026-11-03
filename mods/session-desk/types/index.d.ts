@@ -1,15 +1,4 @@
-export type Tab = 'history' | 'quick' | 'changes' | 'progress' | 'explain'
-
-// SPEC 1 件と、それが指す計画の進捗。mtime は計画ファイルの更新時刻（ミリ秒）。
-export type ProgressItem = {
-  spec: string
-  status: string | null
-  plan: string | null
-  planStatus: string | null
-  done: number
-  total: number
-  mtime: number
-}
+export type Tab = 'history' | 'quick' | 'changes' | 'explain'
 
 // AskUserQuestion の質問 1 件のうち、解説に使う部分。
 export type AskQuestion = {
@@ -44,7 +33,6 @@ declare module 'claude-code' {
       history: Shaped<string[]>
       quick: Shaped<string[]>
       changed: Shaped<string[]>
-      progress: Shaped<ProgressItem[]>
       explanation: Shaped<ExplainState>
       viewed: ChangeView
       tab: Tab

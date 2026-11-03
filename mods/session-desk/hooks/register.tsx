@@ -1,24 +1,19 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import type { AskQuestion, ChangeView, ExplainState, ProgressItem, Tab } from '../types'
+import type { AskQuestion, ChangeView, ExplainState, Tab } from '../types'
 import {
   DEFAULT_QUICK,
   addQuick,
   allAdded,
   buildExplainPrompt,
-  countChecks,
   insideCwd,
   isSecretName,
   parseDiff,
   parseExplanation,
-  parseFrontmatter,
   parseQuick,
-  pickCurrent,
   preview,
-  progressBar,
   removeQuick,
-  slashes,
   stripControl,
 } from './lib'
 
@@ -26,9 +21,7 @@ const PANE = 'session-desk'
 const STORE_KEY = 'quick'
 const MAX_BYTES = 1_000_000
 const MAX_DIFF_LINES = 500
-const MAX_SPECS = 30
 const MAX_CALLS = 30
-const SPECS_DIR = 'docs/grill-form/specs'
 const EDIT_TOOLS = ['Edit', 'Write', 'NotebookEdit']
 
 // 状態は、このモジュールの atom に持つ。形を変えるときは、shape のタグを変える。
@@ -36,7 +29,6 @@ const SHAPE = { shape: 'desk-1' } as const
 const history = atom({ plugin: 'session-desk', key: 'history' } as const, [], SHAPE)
 const quick = atom({ plugin: 'session-desk', key: 'quick' } as const, [...DEFAULT_QUICK], SHAPE)
 const changed = atom({ plugin: 'session-desk', key: 'changed' } as const, [], SHAPE)
-const progress = atom({ plugin: 'session-desk', key: 'progress' } as const, [], SHAPE)
 const explanation = atom({ plugin: 'session-desk', key: 'explanation' } as const, { phase: 'none', data: null } as ExplainState, SHAPE)
 const tab = atom({ plugin: 'session-desk', key: 'tab' } as const, 'history' as Tab)
 const selected = atom({ plugin: 'session-desk', key: 'selected' } as const, null as number | null)
@@ -47,7 +39,6 @@ const TABS: readonly { id: Tab; label: string }[] = [
   { id: 'explain', label: '解説' },
   { id: 'quick', label: '定型文' },
   { id: 'changes', label: '変更' },
-  { id: 'progress', label: '進捗' },
 ]
 
 type Change = NonNullable<ChangeView>['change']
@@ -133,59 +124,6 @@ async function toggleChange($: any, path: string) {
   await update($, viewed, () => ({ path, change }))
 }
 
-// 進捗の読み直しは補助の機能。失敗しても、開始や編集の流れは止めない。
-async function safeRefresh($: any) {
-  try {
-    await refreshProgress($)
-  } catch {
-    // 次の機会に読み直す。
-  }
-}
-
-async function readText($: any, path: string): Promise<string | undefined> {
-  try {
-    const text = await $.fs.read(path)
-
-    return typeof text === 'string' ? text : undefined
-  } catch {
-    return undefined
-  }
-}
-
-// docs/grill-form/specs/*.md の status と plan、plan のチェックボックスの数を読み直して、atom に書く。
-// 描画のたびには読まない。セッションの開始・編集ツールの実行後・進捗タブを開いたときに呼ぶ。
-async function refreshProgress($: any) {
-  const root = slashes(await $.session.cwd())
-  let entries: { name: string; kind: string }[] = []
-  try {
-    entries = await $.fs.list(`${root}/${SPECS_DIR}`)
-  } catch {
-    // フォルダがなければ、一覧は空。
-  }
-  const items: ProgressItem[] = []
-  for (const entry of entries.filter(x => x.kind === 'file' && /\.md$/i.test(x.name)).slice(0, MAX_SPECS)) {
-    const specText = await readText($, `${root}/${SPECS_DIR}/${entry.name}`)
-    const front = parseFrontmatter(specText ?? '')
-    let plan = front.plan
-    let planStatus: string | null = null
-    let counts = { done: 0, total: 0 }
-    let mtime = 0
-    if (plan !== null) {
-      const planPath = `${root}/${plan}`
-      const planText = insideCwd(planPath, root) ? await readText($, planPath) : undefined
-      if (planText === undefined) {
-        plan = null
-      } else {
-        planStatus = parseFrontmatter(planText).status
-        counts = countChecks(planText)
-        mtime = (await $.fs.stat(planPath).catch(() => undefined))?.mtimeMs ?? 0
-      }
-    }
-    items.push({ spec: entry.name, status: front.status, plan, planStatus, done: counts.done, total: counts.total, mtime })
-  }
-  await update($, progress, () => items)
-}
-
 // 1 セッションのモデル呼び出しの回数。同時に質問が来ても超えないよう、同期的に数える（ホットリロードでは 0 に戻る）。
 let used = 0
 // 新しい質問が来たら、前の質問の解説は捨てる。
@@ -227,7 +165,6 @@ export const register: Register = on => {
     } catch {
       // 保存した定型文を読めなくても、初期値で動く。
     }
-    await safeRefresh($)
 
     return next(e)
   })
@@ -261,7 +198,6 @@ export const register: Register = on => {
         // 開いていた差分は、再編集で古くなる。閉じて、開き直すときに作り直す。
         await update($, viewed, now => (now?.path === path ? null : now))
       }
-      await safeRefresh($)
     }
 
     return next(e)
@@ -342,7 +278,7 @@ export const register: Register = on => {
           ))}
         </Box>
       )
-    } else if (current === 'changes') {
+    } else {
       const files = await read($, changed)
       const change = (await read($, viewed))?.change
       body = (
@@ -361,30 +297,6 @@ export const register: Register = on => {
           {change?.kind === 'diff' && change.view.truncated && <Text dimColor>{`${MAX_DIFF_LINES} 行までを表示`}</Text>}
         </Box>
       )
-    } else {
-      const items = await read($, progress)
-      body = (
-        <Box flexDirection="column">
-          {items.length === 0 && <Text dimColor>なし</Text>}
-          {items.map(item => {
-            const bar = progressBar(item.done, item.total)
-
-            return (
-              <Box flexDirection="column">
-                <Text bold>{stripControl(`${item.spec}（${item.status ?? '不明'}）`)}</Text>
-                {item.plan === null && <Text dimColor>計画: 未作成</Text>}
-                {item.plan !== null && (
-                  <Box gap={1}>
-                    <Text dimColor>{stripControl(item.plan)}</Text>
-                    {bar !== null && <Text>{bar.bar}</Text>}
-                    {bar !== null && <Text>{bar.label}</Text>}
-                  </Box>
-                )}
-              </Box>
-            )
-          })}
-        </Box>
-      )
     }
 
     return (
@@ -394,36 +306,11 @@ export const register: Register = on => {
             <Button
               key={`tab-${item.id}`}
               label={item.label}
-              onPress={async () => {
-                if (item.id === 'progress') {
-                  await safeRefresh($)
-                }
-                await update($, tab, () => item.id)
-              }}
+              onPress={() => update($, tab, () => item.id)}
             />
           ))}
         </Box>
         {body}
-      </Box>
-    )
-  })
-
-  // 入力欄の上のバンド: 完了していない計画のうち、更新が最も新しい 1 件の進捗バー。なければ何も足さない。
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey) {
-      return next(e)
-    }
-    const current = pickCurrent(await read($, progress))
-    const bar = current === undefined ? null : progressBar(current.done, current.total)
-    if (bar === null) {
-      return next(e)
-    }
-    const { Box, Text } = $.ui.resolve(e)
-
-    return (
-      <Box gap={1}>
-        <Text>{bar.bar}</Text>
-        <Text>{bar.label}</Text>
       </Box>
     )
   })

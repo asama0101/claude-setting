@@ -132,6 +132,17 @@ test('a bad stored value falls back to the defaults', async ($, on) => {
   await ui.unmount()
 })
 
+test('session start still completes when the store cannot be read, and the defaults are used', async ($, on) => {
+  // store.get の受け皿がないので、$.store.get は失敗する。
+  on('session.start', (_: any, e: any) => ({ cwd: e.cwd }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  const started = await start($)
+  expect(started.cwd).toBe('D:/p')
+  const ui = await open($)
+  expect(await labels(ui, 'quick')).toEqual(PHRASES)
+  await ui.unmount()
+})
+
 test('the quick tab shows a note when every phrase is deleted', async ($, on) => {
   fakeEngine(on, { quick: [] })
   await start($)
