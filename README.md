@@ -5,10 +5,10 @@ Claude Code を Windows で使う人が、作業ルール、git 操作の確認�
 
 ## 機能
 
-- 作業の進め方を、規則（`CLAUDE.md`、`rules/`、`docs/`）で決める。Claude Code が、実装の前に計画を出し、変更をサブエージェント（別の文脈で作業する Claude）のレビューにかけ、危ない操作の前に確認する。
+- 作業の進め方を、規則（`CLAUDE.md`、`rules/`、`reference/`）で決める。Claude Code が、実装の前に計画を出し、変更をサブエージェント（別の文脈で作業する Claude）のレビューにかけ、危ない操作の前に確認する。
 - 未コミット変更の破棄やファイルの削除など、修復できない破壊的コマンド（`git reset --hard`・`git clean`・`rm -rf` など）の前に、確認を必ず出す。auto mode（許可の確認を自動で判断するモード）でも出る。
 - ステータスラインに、モデル、フォルダ、ブランチ、コンテキスト（Claude が一度に扱える量）の使用率を出す。いまの状態を、画面の下端で確かめられる。mod `session-desk`（`mods/session-desk/`）を読み込むと、サイド UI パネルに、送ったプロンプトの履歴、定型文、ファイルの差分が出る。
-- Git/GitHub のフロー（作業ブランチ → コミット → push → PR → squash マージ → タグ・リリース）を、hook（セッションの開始・ツールの実行・応答の終了の節目で自動実行されるコマンド）が知らせ、守らせる。フローの詳細は [docs/git-flow.md](docs/git-flow.md) にある。別の作業をしていても気づけるよう、許可の確認・選択肢の質問・質問や依頼で終わる応答のときに、Windows のトースト通知（画面の隅に出る通知）を出す（作業が終わっただけの応答では出ない）。
+- Git/GitHub のフロー（作業ブランチ → コミット → push → PR → squash マージ → タグ・リリース）を、hook（セッションの開始・ツールの実行・応答の終了の節目で自動実行されるコマンド）が知らせ、守らせる。フローの詳細は [reference/git-flow.md](reference/git-flow.md) にある。別の作業をしていても気づけるよう、許可の確認・選択肢の質問・質問や依頼で終わる応答のときに、Windows のトースト通知（画面の隅に出る通知）を出す（作業が終わっただけの応答では出ない）。
 - コードの変更を最小にするスキル `ponytail`（`skills/`）が使える。
 
 ## 前提条件
@@ -39,7 +39,7 @@ Claude Code を Windows で使う人が、作業ルール、git 操作の確認�
    ```powershell
    $bak = "$HOME\.claude-backup-$(Get-Date -Format yyyyMMdd-HHmmss)"
    New-Item -ItemType Directory -Force $bak | Out-Null
-   foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','docs','rules','skills') {
+   foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','reference','rules','skills') {
      if (Test-Path "$HOME\.claude\$f") { Copy-Item "$HOME\.claude\$f" $bak -Recurse }
    }
    ```
@@ -48,7 +48,7 @@ Claude Code を Windows で使う人が、作業ルール、git 操作の確認�
 
    ```powershell
    New-Item -ItemType Directory -Force "$HOME\.claude" | Out-Null
-   Copy-Item settings.json,statusline.py,hooks,docs,rules,skills "$HOME\.claude\" -Recurse -Force
+   Copy-Item settings.json,statusline.py,hooks,reference,rules,skills "$HOME\.claude\" -Recurse -Force
    Copy-Item global-CLAUDE.md "$HOME\.claude\CLAUDE.md" -Force
    ```
 
@@ -61,7 +61,7 @@ Claude Code を終了してから実行する。最初に作った退避フォ�
 ```powershell
 $bak = (Get-ChildItem $HOME -Directory -Filter '.claude-backup-*' | Sort-Object Name | Select-Object -First 1).FullName
 if (-not $bak) { throw '退避フォルダがありません。何も変更していません。' }
-foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','docs','rules','skills') {
+foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','reference','rules','skills') {
   if (Test-Path "$HOME\.claude\$f") { Remove-Item "$HOME\.claude\$f" -Recurse -Force }
   if (Test-Path "$bak\$f") { Copy-Item "$bak\$f" "$HOME\.claude\" -Recurse }
 }
@@ -70,6 +70,8 @@ foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','docs','rules
 ### 更新
 
 このリポジトリを最新にしてから、手順 1 と手順 2 をもう一度実行する。手順 1 は、新しい日時のフォルダを作る。
+
+旧版（規則の文書を `docs\` に置いていた版）から更新するときは、手順 2 のあとに、`~\.claude\docs\git-flow.md` と `~\.claude\docs\plugin-rules.md` を手で削除する。規則の文書は `~\.claude\reference\` に移り、旧 `docs\` の 2 件は参照されなくなる。
 
 ## 使い方
 

@@ -123,5 +123,5 @@
 
 ## リファレンス
 次の作業の前に、対応する規則ファイルを読み、従う。規則ファイル（`rules\` の自動読み込み分を含む）がプロジェクトの既存慣習と異なるときは、既存を優先し、差異を「コミュニケーション」の末尾の順序で指摘する。
-- スキル・プラグインの作成・変更: `~\.claude\docs\plugin-rules.md`
-- Git/GitHub の作業（ブランチ、PR、リリース、バージョン表記）: `~\.claude\docs\git-flow.md`
+- スキル・プラグインの作成・変更: `~\.claude\reference\plugin-rules.md`
+- Git/GitHub の作業（ブランチ、PR、リリース、バージョン表記）: `~\.claude\reference\git-flow.md`
