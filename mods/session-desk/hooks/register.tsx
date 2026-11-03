@@ -1,16 +1,14 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import type { AskQuestion, ChangeView, ExplainState, Tab } from '../types'
+import type { ChangeView, Tab } from '../types'
 import {
   DEFAULT_QUICK,
   addQuick,
   allAdded,
-  buildExplainPrompt,
   insideCwd,
   isSecretName,
   parseDiff,
-  parseExplanation,
   parseQuick,
   preview,
   removeQuick,
@@ -21,7 +19,6 @@ const PANE = 'session-desk'
 const STORE_KEY = 'quick'
 const MAX_BYTES = 1_000_000
 const MAX_DIFF_LINES = 500
-const MAX_CALLS = 30
 const EDIT_TOOLS = ['Edit', 'Write', 'NotebookEdit']
 
 // 状態は、このモジュールの atom に持つ。形を変えるときは、shape のタグを変える。
@@ -29,14 +26,12 @@ const SHAPE = { shape: 'desk-1' } as const
 const history = atom({ plugin: 'session-desk', key: 'history' } as const, [], SHAPE)
 const quick = atom({ plugin: 'session-desk', key: 'quick' } as const, [...DEFAULT_QUICK], SHAPE)
 const changed = atom({ plugin: 'session-desk', key: 'changed' } as const, [], SHAPE)
-const explanation = atom({ plugin: 'session-desk', key: 'explanation' } as const, { phase: 'none', data: null } as ExplainState, SHAPE)
 const tab = atom({ plugin: 'session-desk', key: 'tab' } as const, 'history' as Tab)
 const selected = atom({ plugin: 'session-desk', key: 'selected' } as const, null as number | null)
 const viewed = atom({ plugin: 'session-desk', key: 'viewed' } as const, null as ChangeView)
 
 const TABS: readonly { id: Tab; label: string }[] = [
   { id: 'history', label: '履歴' },
-  { id: 'explain', label: '解説' },
   { id: 'quick', label: '定型文' },
   { id: 'changes', label: '変更' },
 ]
@@ -124,34 +119,15 @@ async function toggleChange($: any, path: string) {
   await update($, viewed, () => ({ path, change }))
 }
 
-// 1 セッションのモデル呼び出しの回数。同時に質問が来ても超えないよう、同期的に数える（ホットリロードでは 0 に戻る）。
-let used = 0
-// 新しい質問が来たら、前の質問の解説は捨てる。
-let latest = 0
-
-// AskUserQuestion の質問を、haiku に解説させる。失敗しても、質問は止めない。`$` を受け取る関数は、トップレベルに置く。
-async function explain($: any, questions: AskQuestion[]) {
-  const mine = ++latest
-  const set = async (state: ExplainState) => {
-    if (mine === latest) {
-      await update($, explanation, () => state)
-    }
+// パネルが開いていれば閉じ、閉じていれば（幅が足りず、描かれずに待っているときも）開く。
+// 人の押下で開くため、端末の幅に関係なく出る。
+async function togglePane($: any) {
+  const isUp = (await $.ui.panes()).some((pane: { id: string; isPlaced: boolean }) => pane.id === PANE && pane.isPlaced)
+  if (isUp) {
+    await $.ui.close({ id: PANE })
+  } else {
+    await $.ui.open({ id: PANE, title: 'Session Desk' })
   }
-  if (used >= MAX_CALLS) {
-    await set({ phase: 'limit', data: null })
-    return
-  }
-  used++
-  await set({ phase: 'loading', data: null })
-  let data = null
-  try {
-    const prompt = buildExplainPrompt(questions, await read($, history))
-    const result = await $.model.complete({ model: 'haiku', prompt, timeoutMs: 8000 })
-    data = result?.isAnswered ? parseExplanation(result.text) : null
-  } catch {
-    // 依頼の組み立てもモデルの呼び出しも、失敗したら「作れなかった」にする。「作成中」のまま残さない。
-  }
-  await set(data === null ? { phase: 'failed', data: null } : { phase: 'ready', data })
 }
 
 const COLORS = { add: 'green', del: 'red', hunk: 'cyan', ctx: undefined } as const
@@ -173,13 +149,6 @@ export const register: Register = on => {
     if (e.text.trim() !== '') {
       await update($, history, list => [...list, e.text])
     }
-
-    return next(e)
-  })
-
-  on('tool.call', { tool: 'AskUserQuestion' }, async ($, e, next) => {
-    void update($, tab, () => 'explain').catch(() => {})
-    void explain($, e.questions).catch(() => {})
 
     return next(e)
   })
@@ -220,43 +189,24 @@ export const register: Register = on => {
             .reverse()
             .map(({ text, n }) => (
               <Box flexDirection="column">
+                <Text>{`${n}. ${preview(text)}`}</Text>
                 <Box gap={1}>
                   <Button
                     key={`history-${n}`}
-                    label={`${n}. ${preview(text)}`}
+                    label="全文"
+                    variant="secondary"
                     onPress={() => update($, selected, now => (now === n ? null : n))}
                   />
-                  <Button key={`history-add-${n}`} label="定型文に追加" onPress={() => saveQuick($, addQuick(phrases, text))} />
+                  <Button
+                    key={`history-add-${n}`}
+                    label="定型文に追加"
+                    variant="primary"
+                    onPress={() => saveQuick($, addQuick(phrases, text))}
+                  />
                 </Box>
                 {chosen === n && <Text>{stripControl(text)}</Text>}
               </Box>
             ))}
-        </Box>
-      )
-    } else if (current === 'explain') {
-      const state = await read($, explanation)
-      const data = state.data
-      body = (
-        <Box flexDirection="column">
-          {state.phase === 'none' && <Text dimColor>なし</Text>}
-          {state.phase === 'loading' && <Text dimColor>解説を作成中…</Text>}
-          {state.phase === 'failed' && <Text dimColor>解説を作れなかった</Text>}
-          {state.phase === 'limit' && <Text dimColor>{`解説の上限（${MAX_CALLS} 回）に達した`}</Text>}
-          {state.phase === 'ready' && data !== null && (
-            <Box flexDirection="column">
-              <Text dimColor>AI による推定</Text>
-              <Text bold>指示の要約</Text>
-              <Text>{data.summary}</Text>
-              <Text bold>なぜ今この質問か</Text>
-              <Text>{data.reason}</Text>
-              <Text bold>選択肢ごとの影響</Text>
-              {data.options.map(option => (
-                <Text>{`・${option.label}: ${option.effect}`}</Text>
-              ))}
-              <Text bold>推奨</Text>
-              <Text>{data.recommend}</Text>
-            </Box>
-          )}
         </Box>
       )
     } else if (current === 'quick') {
@@ -265,15 +215,25 @@ export const register: Register = on => {
         <Box flexDirection="column">
           {phrases.length === 0 && <Text dimColor>なし</Text>}
           {phrases.map((text, i) => (
-            <Box gap={1}>
-              <Button
-                key={`quick-${i}`}
-                label={stripControl(text)}
-                onPress={() => {
-                  void $.prompt.submit({ text })
-                }}
-              />
-              <Button key={`quick-del-${i}`} label="削除" onPress={() => saveQuick($, removeQuick(phrases, i))} />
+            <Box flexDirection="column">
+              <Text>{stripControl(text)}</Text>
+              <Box gap={1}>
+                <Button
+                  key={`quick-${i}`}
+                  label="送信"
+                  variant="primary"
+                  onPress={() => {
+                    void $.prompt.submit({ text })
+                  }}
+                />
+                <Button
+                  key={`quick-del-${i}`}
+                  label="削除"
+                  variant="secondary"
+                  dimColor
+                  onPress={() => saveQuick($, removeQuick(phrases, i))}
+                />
+              </Box>
             </Box>
           ))}
         </Box>
@@ -290,7 +250,7 @@ export const register: Register = on => {
           {change?.kind === 'note' && <Text dimColor>{change.text}</Text>}
           {change?.kind === 'diff' &&
             change.view.lines.map(line => (
-              <Text color={COLORS[line.kind]} dimColor={line.kind === 'hunk'} wrap="truncate-end">
+              <Text color={COLORS[line.kind]} dimColor={line.kind === 'hunk'}>
                 {line.text}
               </Text>
             ))}
@@ -311,6 +271,20 @@ export const register: Register = on => {
           ))}
         </Box>
         {body}
+      </Box>
+    )
+  })
+
+  // 入力欄の上のバンド: パネルの開閉ボタン 1 つ。アンケート中は出さない。
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey) {
+      return next(e)
+    }
+    const { Box, Button } = $.ui.resolve(e)
+
+    return (
+      <Box>
+        <Button key="panel-toggle" label="サイドパネルの開閉" onPress={() => togglePane($)} />
       </Box>
     )
   })

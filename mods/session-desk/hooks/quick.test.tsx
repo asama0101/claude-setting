@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { DEFAULT_QUICK, addQuick, parseQuick, removeQuick } from './lib'
+import { parentOf, textsOf } from './test-kit'
 
 const PANE = {
   plugin: 'session-desk',
@@ -45,8 +46,8 @@ function fakeEngine(on: any, entries?: Record<string, unknown>) {
 
 const start = ($: any) => $.session.start({ cwd: 'D:/p', surface: 'terminal', interactive: true })
 const send = ($: any, text: string) => $.prompt.submit({ text })
-const labels = async (ui: any, prefix: string): Promise<string[]> =>
-  [...JSON.stringify(await ui.drawn()).matchAll(new RegExp(`"key":"${prefix}-([0-9]+)"[^}]*?"label":"([^"]*)"`, 'g'))].map(m => m[2] ?? '')
+// 定型文の一覧は、ふつうの Text。ボタンの label は props にあり、children には入らない。
+const labels = async (ui: any): Promise<string[]> => textsOf(await ui.drawn())
 const open = async ($: any) => {
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   await ui.press({ key: 'tab-quick' })
@@ -79,7 +80,31 @@ test('with an empty store the quick tab lists the three default phrases', async 
   fakeEngine(on)
   await start($)
   const ui = await open($)
-  expect(await labels(ui, 'quick')).toEqual(PHRASES)
+  expect(await labels(ui)).toEqual(PHRASES)
+  await ui.unmount()
+})
+
+test('the phrase is plain text and the actions are short bordered buttons on their own line', async ($, on) => {
+  fakeEngine(on)
+  await start($)
+  const ui = await open($)
+  const tree = await ui.drawn()
+  const json = JSON.stringify(tree)
+  // 文は Button の label に入れない。操作の名前は短い。
+  for (const phrase of PHRASES) {
+    expect(json).not.toContain(`"label":"${phrase}"`)
+  }
+  expect(json).toContain('"label":"送信"')
+  expect(json).toContain('"label":"削除"')
+  // 送信と削除は同じ段にあり、その段に文は入っていない。
+  const actions = parentOf(tree, 'quick-1')
+  expect(parentOf(tree, 'quick-del-1')).toBe(actions)
+  expect(JSON.stringify(actions)).not.toContain(PHRASES[1] ?? '')
+  // 送信は目立つ色（primary）。削除は控えめ（secondary で薄い色）。
+  expect(JSON.stringify(await ui.find({ key: 'quick-1' }))).toContain('"variant":"primary"')
+  const del = JSON.stringify(await ui.find({ key: 'quick-del-1' }))
+  expect(del).toContain('"variant":"secondary"')
+  expect(del).toContain('"dimColor":true')
   await ui.unmount()
 })
 
@@ -101,7 +126,7 @@ test('adding from history keeps one copy and saves to the store', async ($, on) 
   await ui.press({ key: 'history-add-1' })
   await ui.press({ key: 'history-add-1' })
   await ui.press({ key: 'tab-quick' })
-  expect(await labels(ui, 'quick')).toEqual([...PHRASES, 'レビューして'])
+  expect(await labels(ui)).toEqual([...PHRASES, 'レビューして'])
   expect(saved.get('quick')).toEqual([...PHRASES, 'レビューして'])
   await ui.unmount()
 })
@@ -111,7 +136,7 @@ test('deleting removes the phrase and saves to the store', async ($, on) => {
   await start($)
   const ui = await open($)
   await ui.press({ key: 'quick-del-0' })
-  expect(await labels(ui, 'quick')).toEqual([PHRASES[1], PHRASES[2]])
+  expect(await labels(ui)).toEqual([PHRASES[1], PHRASES[2]])
   expect(saved.get('quick')).toEqual([PHRASES[1], PHRASES[2]])
   await ui.unmount()
 })
@@ -120,7 +145,7 @@ test('saved phrases are loaded at session start; a bad stored value falls back t
   fakeEngine(on, { quick: ['x', 'y'] })
   await start($)
   const ui = await open($)
-  expect(await labels(ui, 'quick')).toEqual(['x', 'y'])
+  expect(await labels(ui)).toEqual(['x', 'y'])
   await ui.unmount()
 })
 
@@ -128,7 +153,7 @@ test('a bad stored value falls back to the defaults', async ($, on) => {
   fakeEngine(on, { quick: 'not-an-array' })
   await start($)
   const ui = await open($)
-  expect(await labels(ui, 'quick')).toEqual(PHRASES)
+  expect(await labels(ui)).toEqual(PHRASES)
   await ui.unmount()
 })
 
@@ -139,7 +164,7 @@ test('session start still completes when the store cannot be read, and the defau
   const started = await start($)
   expect(started.cwd).toBe('D:/p')
   const ui = await open($)
-  expect(await labels(ui, 'quick')).toEqual(PHRASES)
+  expect(await labels(ui)).toEqual(PHRASES)
   await ui.unmount()
 })
 

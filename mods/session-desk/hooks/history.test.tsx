@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { preview } from './lib'
-import { ESC } from './test-kit'
+import { ESC, parentOf, textsOf } from './test-kit'
 
 const PANE = {
   plugin: 'session-desk',
@@ -25,9 +25,8 @@ function fakeEngine(on: any) {
 // 実際の送信は wait と origin も持つ。テストでは text だけを渡す。
 const send = ($: any, text: string) => $.prompt.submit({ text })
 
-// 一覧の行は Button。描画の JSON から、番号つきの label を順に取り出す。
-const rows = async (ui: any): Promise<string[]> =>
-  [...JSON.stringify(await ui.drawn()).matchAll(/"label":"(\d+\. [^"]*)"/g)].map(m => m[1] ?? '')
+// 一覧の行は、番号つきの Text。描画の JSON から、順に取り出す。
+const rows = async (ui: any): Promise<string[]> => textsOf(await ui.drawn()).filter(text => /^[0-9]+\. /.test(text))
 
 test('preview collapses whitespace, strips control codes and cuts at 60 characters', async () => {
   expect(preview('short')).toBe('short')
@@ -69,6 +68,27 @@ test('history shows 60 characters, and selecting a row shows the whole prompt', 
   expect((await ui.find({ type: 'Text', text: long }))?.text).toBe(long)
   await ui.press({ key: 'history-1' })
   expect(await ui.find({ type: 'Text', text: long })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('the prompt is plain text and the actions are short bordered buttons on their own line', async ($, on) => {
+  fakeEngine(on)
+  const long = 'x'.repeat(100)
+  await send($, long)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  const tree = await ui.drawn()
+  const json = JSON.stringify(tree)
+  // 文は Button の label に入れない。操作の名前は短い。
+  expect(json).not.toContain('"label":"1. ')
+  expect(json).toContain('"label":"全文"')
+  expect(json).toContain('"label":"定型文に追加"')
+  // 2 つの操作のボタンは同じ段にあり、その段に文は入っていない。外側は縦並び。
+  const actions = parentOf(tree, 'history-1')
+  expect(parentOf(tree, 'history-add-1')).toBe(actions)
+  expect(JSON.stringify(actions)).not.toContain('xxxx')
+  // 追加は目立つ色（primary）。全文は控えめ（secondary）。
+  expect(JSON.stringify(await ui.find({ key: 'history-add-1' }))).toContain('"variant":"primary"')
+  expect(JSON.stringify(await ui.find({ key: 'history-1' }))).toContain('"variant":"secondary"')
   await ui.unmount()
 })
 

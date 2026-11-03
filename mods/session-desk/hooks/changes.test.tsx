@@ -149,6 +149,17 @@ test('selecting a tracked file shows its diff, additions green and deletions red
   await ui.unmount()
 })
 
+test('long diff lines wrap instead of being cut off', async ($, on) => {
+  fakeEngine(on, { 'D:/p/src/a.py': { text: 'x' } }, { 'D:/p/src/a.py': DIFF })
+  await $.classic.PostToolUse(edited('Edit', 'D:/p/src/a.py'))
+  const ui = await open($)
+  await ui.press({ key: 'change-0' })
+  const line = await ui.find({ type: 'Text', text: '+new line' })
+  expect(line).toBeDefined()
+  expect(JSON.stringify(line)).not.toContain('truncate')
+  await ui.unmount()
+})
+
 test('an untracked new file is shown with every line added', async ($, on) => {
   fakeEngine(on, { 'D:/p/new.py': { text: `one${NL}two${NL}` } }, {})
   await $.classic.PostToolUse(edited('Write', 'D:/p/new.py'))
