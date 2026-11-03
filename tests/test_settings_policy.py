@@ -65,11 +65,12 @@ def test_readme_guardはhooksに登録されていない(settings):
     assert not [c for c in commands if "readme_guard" in c]
 
 
-def test_git_flowの4種のhookだけが残っている(settings):
+def test_git_flowの4種とnotifyの3種のhookだけが残っている(settings):
     commands = [h["command"] for groups in settings["hooks"].values() for g in groups for h in g["hooks"]]
-    assert len(commands) == 4
+    assert len(commands) == 7  # git_flow の 4 件 + notify の 3 件（通知 Hook の SPEC）
     for sub in ("session-start", "pre-tool", "post-tool", "stop"):
         assert sum(f'git_flow.py" {sub}' in c for c in commands) == 1, sub
+    assert sum("notify.py" in c for c in commands) == 3
 
 
 def test_readme_guardのファイルは残っている():

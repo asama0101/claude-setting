@@ -133,6 +133,16 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python3 \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || true",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -154,6 +164,27 @@
             "type": "command",
             "command": "py \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || python3 \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || python \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || true",
             "timeout": 15
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python3 \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python3 \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || true",
+            "timeout": 10
           }
         ]
       }
