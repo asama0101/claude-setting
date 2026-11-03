@@ -16,18 +16,25 @@
       "Bash(grep *)",
       "Bash(cat *)",
       "Bash(head *)",
-      "Bash(tail *)"
+      "Bash(tail *)",
+      "Bash(py -m pytest *)",
+      "Bash(py -m ruff *)",
+      "Bash(git add *)",
+      "Bash(git switch *)",
+      "Bash(git commit *)"
     ],
     "ask": [
-      "Bash(git push *)",
-      "Bash(git tag *)",
-      "Bash(gh pr merge *)",
-      "Bash(gh release create *)",
       "Bash(git reset --hard *)",
       "Bash(git clean *)",
       "Bash(git checkout -- *)",
       "Bash(git restore *)",
-      "Bash(git checkout .)"
+      "Bash(git checkout .)",
+      "Bash(rm -r *)",
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(git switch --discard-changes *)",
+      "Bash(git switch -f *)",
+      "Bash(git switch --force *)"
     ],
     "deny": [
       "Read(**/.env)",
@@ -85,7 +92,19 @@
       "Read(**/System32/config/SECURITY)",
       "Read(**/NTUSER.DAT)",
       "Edit(**/Windows/System32/**)",
-      "Edit(**/Windows/SysWOW64/**)"
+      "Edit(**/Windows/SysWOW64/**)",
+      "Read(**/.aws/config)",
+      "Read(**/.git/config)",
+      "Read(**/*.jks)",
+      "Read(**/*.keystore)",
+      "Read(**/credentials*)",
+      "Edit(**/AppData/Local/Microsoft/Credentials/**)",
+      "Edit(**/AppData/Roaming/Microsoft/Credentials/**)",
+      "Edit(**/AppData/Roaming/Microsoft/Protect/**)",
+      "Edit(**/System32/config/SAM)",
+      "Edit(**/System32/config/SYSTEM)",
+      "Edit(**/System32/config/SECURITY)",
+      "Edit(**/NTUSER.DAT)"
     ],
     "defaultMode": "auto",
     "disableBypassPermissionsMode": "disable"
@@ -118,16 +137,6 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "py \"$HOME/.claude/hooks/readme_guard.py\" record 2>/dev/null || python3 \"$HOME/.claude/hooks/readme_guard.py\" record 2>/dev/null || python \"$HOME/.claude/hooks/readme_guard.py\" record 2>/dev/null || true",
-            "timeout": 10
-          }
-        ]
-      },
-      {
         "matcher": "Edit|Write|NotebookEdit|Bash",
         "hooks": [
           {
@@ -141,11 +150,6 @@
     "Stop": [
       {
         "hooks": [
-          {
-            "type": "command",
-            "command": "py \"$HOME/.claude/hooks/readme_guard.py\" check 2>/dev/null || python3 \"$HOME/.claude/hooks/readme_guard.py\" check 2>/dev/null || python \"$HOME/.claude/hooks/readme_guard.py\" check 2>/dev/null || true",
-            "timeout": 10
-          },
           {
             "type": "command",
             "command": "py \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || python3 \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || python \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || true",
