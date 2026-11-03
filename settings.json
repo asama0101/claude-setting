@@ -23,6 +23,7 @@
       "Bash(git tag *)",
       "Bash(gh pr create *)",
       "Bash(gh pr merge *)",
+      "Bash(gh release create *)",
       "Bash(git reset --hard *)",
       "Bash(git clean *)",
       "Bash(git checkout -- *)",
@@ -92,14 +93,48 @@
   },
   "model": "sonnet",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" session-start 2>/dev/null || python3 \"$HOME/.claude/hooks/git_flow.py\" session-start 2>/dev/null || python \"$HOME/.claude/hooks/git_flow.py\" session-start 2>/dev/null || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" pre-tool 2>/dev/null || python3 \"$HOME/.claude/hooks/git_flow.py\" pre-tool 2>/dev/null || python \"$HOME/.claude/hooks/git_flow.py\" pre-tool 2>/dev/null || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$HOME/.claude/hooks/readme_guard.py\" record",
+            "command": "py \"$HOME/.claude/hooks/readme_guard.py\" record 2>/dev/null || python3 \"$HOME/.claude/hooks/readme_guard.py\" record 2>/dev/null || python \"$HOME/.claude/hooks/readme_guard.py\" record 2>/dev/null || true",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" post-tool 2>/dev/null || python3 \"$HOME/.claude/hooks/git_flow.py\" post-tool 2>/dev/null || python \"$HOME/.claude/hooks/git_flow.py\" post-tool 2>/dev/null || true",
+            "timeout": 15
           }
         ]
       }
@@ -109,13 +144,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$HOME/.claude/hooks/readme_guard.py\" check",
+            "command": "py \"$HOME/.claude/hooks/readme_guard.py\" check 2>/dev/null || python3 \"$HOME/.claude/hooks/readme_guard.py\" check 2>/dev/null || python \"$HOME/.claude/hooks/readme_guard.py\" check 2>/dev/null || true",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "py \"$HOME/.claude/hooks/uncommitted_warn.py\"",
-            "timeout": 10
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || python3 \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || python \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || true",
+            "timeout": 15
           }
         ]
       }
