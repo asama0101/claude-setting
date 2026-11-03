@@ -710,9 +710,11 @@ def test_autocrlfが有効な環境でcloneしても_gitattributesがあれば�
 def test_settings_permissions_askにgh_release_createがあり件数がreadmeと一致する(settings):
     ask = settings["permissions"]["ask"]
     assert "Bash(gh release create *)" in ask
-    assert len(ask) == 11
+    assert "Bash(git commit *)" not in ask  # ローカルで元に戻せる。main での commit は Hook が拒否する
+    assert "Bash(gh pr create *)" not in ask  # クローズで元に戻せる
+    assert len(ask) == 9
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "| `permissions.ask` | 11 件 |" in readme
+    assert "| `permissions.ask` | 9 件 |" in readme
 
 
 def test_uncommitted_warnは削除され参照が残っていない():

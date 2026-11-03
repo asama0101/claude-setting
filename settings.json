@@ -18,10 +18,8 @@
       "Bash(tail *)"
     ],
     "ask": [
-      "Bash(git commit *)",
       "Bash(git push *)",
       "Bash(git tag *)",
-      "Bash(gh pr create *)",
       "Bash(gh pr merge *)",
       "Bash(gh release create *)",
       "Bash(git reset --hard *)",
