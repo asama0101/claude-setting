@@ -105,11 +105,13 @@ test('the phrase is plain text; actions are borderless words on the next line, w
   expect(send).toContain('"plain":true')
   expect(send).not.toContain('"variant"')
   expect(send).toContain('"color":"suggestion"')
+  expect(send).toContain('"children":["▶ 送信"]')
   const del = JSON.stringify(await ui.find({ key: 'quick-del-1' }))
   expect(del).toContain('"plain":true')
-  expect(del).toContain('"dimColor":true')
-  // 削除の記号は赤。
+  // 削除は、記号も言葉も赤（薄くしない）。
   expect(del).toContain('"color":"error"')
+  expect(del).toContain('"children":["× 削除"]')
+  expect(del).not.toContain('"dimColor"')
   // 定型文の一覧は縦並びで、項目の間に空行（gap 1）がある。
   const list = ancestorsOf(tree, 'quick-1').some(
     box => (box.props as { flexDirection?: string; gap?: number } | undefined)?.gap === 1 &&

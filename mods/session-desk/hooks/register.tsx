@@ -11,7 +11,9 @@ import {
   parseDiff,
   parseQuick,
   preview,
+  relativePath,
   removeQuick,
+  splitPath,
   stripControl,
 } from './lib'
 
@@ -130,7 +132,7 @@ async function togglePane($: any) {
   }
 }
 
-const COLORS = { add: 'green', del: 'red', hunk: 'cyan', ctx: undefined } as const
+const COLORS = { add: 'green', del: 'red', ctx: undefined } as const
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -203,7 +205,7 @@ export const register: Register = on => {
                       label={`${mark} ${word}`}
                       onPress={() => update($, selected, now => (now === n ? null : n))}
                     >
-                      <Text color="suggestion">{mark}</Text> {word}
+                      <Text color="suggestion">{`${mark} ${word}`}</Text>
                     </Button>
                     <Button
                       key={`history-add-${n}`}
@@ -211,7 +213,7 @@ export const register: Register = on => {
                       label="＋ 定型文に追加"
                       onPress={() => saveQuick($, addQuick(phrases, text))}
                     >
-                      <Text color="suggestion">＋</Text> 定型文に追加
+                      <Text color="suggestion">＋ 定型文に追加</Text>
                     </Button>
                   </Box>
                 </Box>
@@ -236,16 +238,15 @@ export const register: Register = on => {
                     void $.prompt.submit({ text })
                   }}
                 >
-                  <Text color="suggestion">▶</Text> 送信
+                  <Text color="suggestion">▶ 送信</Text>
                 </Button>
                 <Button
                   key={`quick-del-${i}`}
                   plain
-                  dimColor
                   label="× 削除"
                   onPress={() => saveQuick($, removeQuick(phrases, i))}
                 >
-                  <Text color="error">×</Text> 削除
+                  <Text color="error">× 削除</Text>
                 </Button>
               </Box>
             </Box>
@@ -255,33 +256,46 @@ export const register: Register = on => {
     } else {
       const files = await read($, changed)
       const opened = await read($, viewed)
-      const change = opened?.change
+      const cwd = await $.session.cwd()
       body = (
-        <Box flexDirection="column">
+        <Box flexDirection="column" gap={1}>
           {files.length === 0 && <Text dimColor>なし</Text>}
           {files.map((path, i) => {
             const isOpen = opened?.path === path
+            const { name, dir } = splitPath(relativePath(path, cwd))
+            const change = isOpen ? opened?.change : undefined
+            // 行番号の桁は、3 桁を最小に、表示する最大の番号に合わせる（大きいファイルでも本文がずれない）。
+            const width =
+              change?.kind === 'diff' ? Math.max(3, ...change.view.lines.map(line => String(line.no ?? '').length)) : 3
 
+            // 差分は、選んだファイルの項目の中（名前とフォルダの真下）に開く。どのファイルの差分かが、位置で分かる。
             return (
-              <Button
-                key={`change-${i}`}
-                plain
-                label={`${isOpen ? '▸ ' : ''}${stripControl(path)}`}
-                onPress={() => toggleChange($, path)}
-              >
-                {isOpen && <Text color="suggestion">▸ </Text>}
-                {stripControl(path)}
-              </Button>
+              <Box key={`change-item-${i}`} flexDirection="column">
+                <Button
+                  key={`change-${i}`}
+                  plain
+                  label={`${isOpen ? '▸ ' : ''}${stripControl(name)}`}
+                  onPress={() => toggleChange($, path)}
+                >
+                  {isOpen && <Text color="suggestion">▸ </Text>}
+                  <Text bold={isOpen}>{stripControl(name)}</Text>
+                </Button>
+                {dir !== '' && <Text dimColor>{`  ${stripControl(dir)}`}</Text>}
+                {change?.kind === 'note' && <Text dimColor>{`│ ${change.text}`}</Text>}
+                {change?.kind === 'diff' &&
+                  change.view.lines.map((line, index) =>
+                    line.kind === 'hunk' ? (
+                      index === 0 ? null : <Text key={`diff-${index}`} dimColor>│ ⋯</Text>
+                    ) : (
+                      <Text key={`diff-${index}`} color={COLORS[line.kind]} dimColor={line.kind === 'ctx'}>
+                        {`│${String(line.no ?? '').padStart(width)} ${line.text}`}
+                      </Text>
+                    ),
+                  )}
+                {change?.kind === 'diff' && change.view.truncated && <Text dimColor>{`│ ${MAX_DIFF_LINES} 行までを表示`}</Text>}
+              </Box>
             )
           })}
-          {change?.kind === 'note' && <Text dimColor>{change.text}</Text>}
-          {change?.kind === 'diff' &&
-            change.view.lines.map(line => (
-              <Text color={COLORS[line.kind]} dimColor={line.kind === 'hunk'}>
-                {line.text}
-              </Text>
-            ))}
-          {change?.kind === 'diff' && change.view.truncated && <Text dimColor>{`${MAX_DIFF_LINES} 行までを表示`}</Text>}
         </Box>
       )
     }

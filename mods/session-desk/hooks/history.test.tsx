@@ -20,6 +20,7 @@ const PANE = {
 // エンジンの代わりの受け皿。送信は、そのまま通す。
 function fakeEngine(on: any) {
   on('prompt.submit', (_: any, e: any) => ({ text: e.text }))
+  on('session.cwd', () => ({ value: 'D:/p' }))
 }
 
 // 実際の送信は wait と origin も持つ。テストでは text だけを渡す。
@@ -102,9 +103,11 @@ test('the prompt is plain text; actions are borderless words on the next line, w
     const button = JSON.stringify(await ui.find({ key }))
     expect(button).toContain('"plain":true')
     expect(button).not.toContain('"variant"')
-    // 操作の記号はアクセント色。
+    // 操作は、記号も言葉もアクセント色（1 つの Text にまとめる）。
     expect(button).toContain('"color":"suggestion"')
   }
+  expect(JSON.stringify(await ui.find({ key: 'history-1' }))).toContain('"children":["▾ 全文"]')
+  expect(JSON.stringify(await ui.find({ key: 'history-add-1' }))).toContain('"children":["＋ 定型文に追加"]')
   // 2 つの操作は同じ段にあり、その段に文は入っていない。
   const actions = parentOf(tree, 'history-1')
   expect(parentOf(tree, 'history-add-1')).toBe(actions)

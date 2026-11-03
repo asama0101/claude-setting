@@ -100,23 +100,35 @@ export function insideCwd(path: string, cwd: string): boolean {
 
 const HEADER = /^(diff --git |index |--- |\+\+\+ |new file mode |deleted file mode |old mode |new mode |similarity index |rename (from|to) )/
 
-// git diff の出力を、行の種類つきに直す。ファイルの見出しは捨てる。max 行で切る。
+const HUNK = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/
+
+// git diff の出力を、行の種類と行番号つきに直す。ファイルの見出しは捨てる。max 行で切る。
 export function parseDiff(text: string, max: number): DiffView {
   const lines: DiffLine[] = []
   let inHunk = false
+  let oldNo = 0
+  let newNo = 0
   for (const raw of stripControl(text).split('\n')) {
     if (!inHunk && HEADER.test(raw)) {
       continue
     }
+    // 「\ No newline at end of file」は、差分の行ではない。表示もせず、行番号も進めない。
+    if (raw.startsWith(BACKSLASH)) {
+      continue
+    }
     if (raw.startsWith('@@')) {
       inHunk = true
+      const found = HUNK.exec(raw)
+      oldNo = Number(found?.[1] ?? 0)
+      newNo = Number(found?.[2] ?? 0)
       lines.push({ kind: 'hunk', text: raw })
     } else if (inHunk && raw.startsWith('+')) {
-      lines.push({ kind: 'add', text: raw })
+      lines.push({ kind: 'add', text: raw, no: newNo++ })
     } else if (inHunk && raw.startsWith('-')) {
-      lines.push({ kind: 'del', text: raw })
+      lines.push({ kind: 'del', text: raw, no: oldNo++ })
     } else if (inHunk && raw !== '') {
-      lines.push({ kind: 'ctx', text: raw })
+      oldNo++
+      lines.push({ kind: 'ctx', text: raw, no: newNo++ })
     }
     if (raw.startsWith('diff --git ')) {
       inHunk = false
@@ -132,7 +144,22 @@ export function allAdded(text: string, max: number): DiffView {
   if (rows[rows.length - 1] === '') {
     rows.pop()
   }
-  const lines = rows.map((row): DiffLine => ({ kind: 'add', text: `+${row}` }))
+  const lines = rows.map((row, i): DiffLine => ({ kind: 'add', text: `+${row}`, no: i + 1 }))
 
   return { lines: lines.slice(0, max), truncated: lines.length > max }
+}
+
+// cwd からの相対パス。cwd の外のパスは、区切りを / にそろえて、そのまま返す。大文字小文字は区別しない（Windows）。
+export function relativePath(path: string, cwd: string): string {
+  const file = slashes(path)
+  const root = slashes(cwd)
+
+  return file.toLowerCase().startsWith(`${root.toLowerCase()}/`) ? file.slice(root.length + 1) : file
+}
+
+// 相対パスを、名前と、フォルダ（末尾が /。なければ空）に分ける。
+export function splitPath(path: string): { name: string; dir: string } {
+  const cut = path.lastIndexOf('/')
+
+  return { name: path.slice(cut + 1), dir: path.slice(0, cut + 1) }
 }

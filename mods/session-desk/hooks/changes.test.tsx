@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-import { allAdded, insideCwd, isSecretName, parseDiff } from './lib'
+import { allAdded, insideCwd, isSecretName, parseDiff, relativePath, splitPath } from './lib'
+import { parentOf, textsOf } from './test-kit'
 
 const PANE = {
   plugin: 'session-desk',
@@ -32,16 +33,43 @@ const DIFF = [
   ' tail',
 ].join(NL)
 
-test('parseDiff drops the file header and classifies each line', async () => {
+test('parseDiff drops the file header, classifies each line and numbers it', async () => {
   const { lines, truncated } = parseDiff(DIFF, 500)
   expect(truncated).toBe(false)
+  // 行番号: 追加と前後の行は新しいファイルの行、削除は古いファイルの行。
   expect(lines).toEqual([
     { kind: 'hunk', text: '@@ -1,3 +1,3 @@' },
-    { kind: 'ctx', text: ' keep' },
-    { kind: 'del', text: '-old line' },
-    { kind: 'add', text: '+new line' },
-    { kind: 'ctx', text: ' tail' },
+    { kind: 'ctx', text: ' keep', no: 1 },
+    { kind: 'del', text: '-old line', no: 2 },
+    { kind: 'add', text: '+new line', no: 2 },
+    { kind: 'ctx', text: ' tail', no: 3 },
   ])
+})
+
+test('parseDiff skips the "No newline at end of file" marker without showing it or shifting the numbers', async () => {
+  const marker = `${BS} No newline at end of file`
+  const text = ['@@ -1,2 +1,2 @@', ' a', '-foo', marker, '+foo', marker].join(NL)
+  expect(parseDiff(text, 500).lines).toEqual([
+    { kind: 'hunk', text: '@@ -1,2 +1,2 @@' },
+    { kind: 'ctx', text: ' a', no: 1 },
+    { kind: 'del', text: '-foo', no: 2 },
+    { kind: 'add', text: '+foo', no: 2 },
+  ])
+})
+
+test('parseDiff restarts the numbers at each hunk', async () => {
+  const two = ['@@ -1,2 +1,2 @@', '-a', '+b', ' c', '@@ -10,2 +10,3 @@', ' x', '+y', ' z'].join(NL)
+  expect(parseDiff(two, 500).lines.map(line => line.no)).toEqual([undefined, 1, 1, 2, undefined, 10, 11, 12])
+})
+
+test('relativePath strips the cwd and splitPath separates the name from the folder', async () => {
+  expect(relativePath('D:/p/docs/a.md', 'D:/p')).toBe('docs/a.md')
+  expect(relativePath(`d:${BS}p${BS}docs${BS}a.md`, 'D:/p/')).toBe('docs/a.md')
+  expect(relativePath(`E:${BS}x${BS}a.md`, 'D:/p')).toBe('E:/x/a.md')
+  // 名前の先頭が同じ別のフォルダ（D:/pp）は、cwd の中ではない。
+  expect(relativePath('D:/pp/a.md', 'D:/p')).toBe('D:/pp/a.md')
+  expect(splitPath('docs/sub/a.md')).toEqual({ name: 'a.md', dir: 'docs/sub/' })
+  expect(splitPath('a.md')).toEqual({ name: 'a.md', dir: '' })
 })
 
 test('parseDiff and allAdded cut at the limit and say so', async () => {
@@ -54,8 +82,8 @@ test('parseDiff and allAdded cut at the limit and say so', async () => {
   expect(added.lines.length).toBe(500)
   expect(added.truncated).toBe(true)
   expect(allAdded(`a${NL}b${NL}`, 500).lines).toEqual([
-    { kind: 'add', text: '+a' },
-    { kind: 'add', text: '+b' },
+    { kind: 'add', text: '+a', no: 1 },
+    { kind: 'add', text: '+b', no: 2 },
   ])
 })
 
@@ -133,7 +161,8 @@ test('the changes tab lists edited files once, for Edit, Write and NotebookEdit 
   await $.classic.PostToolUse(edited('NotebookEdit', 'D:/p/n.ipynb'))
   await $.classic.PostToolUse(edited('Read', 'D:/p/c.py'))
   const ui = await open($)
-  expect(await names(ui)).toEqual(['D:/p/a.py', 'D:/p/b.py', 'D:/p/n.ipynb'])
+  // 一覧は、作業フォルダからの相対パスのうち、名前だけ（フォルダは別の薄い行）。
+  expect(await names(ui)).toEqual(['a.py', 'b.py', 'n.ipynb'])
   await ui.unmount()
 })
 
@@ -145,13 +174,16 @@ test('file entries are borderless, and the opened one is marked with ▸', async
   const entry = async (key: string) => JSON.stringify(await ui.find({ key }))
   expect(await entry('change-0')).toContain('"plain":true')
   expect(await entry('change-0')).not.toContain('"variant"')
-  expect(await entry('change-1')).toContain('"label":"D:/p/b.py"')
+  expect(await entry('change-1')).toContain('"label":"b.py"')
+  expect(await entry('change-1')).not.toContain('"bold":true')
   await ui.press({ key: 'change-1' })
-  expect(await entry('change-1')).toContain('"label":"▸ D:/p/b.py"')
-  // 選んだファイルの ▸ はアクセント色。選んでいないファイルには色の記号がない。
+  expect(await entry('change-1')).toContain('"label":"▸ b.py"')
+  // 選んだファイルは、▸ がアクセント色で、名前が太字。選んでいないファイルには、色も太字もない。
   expect(await entry('change-1')).toContain('"color":"suggestion"')
+  expect(await entry('change-1')).toContain('"bold":true')
   expect(await entry('change-0')).not.toContain('"color"')
-  expect(await entry('change-0')).toContain('"label":"D:/p/a.py"')
+  expect(await entry('change-0')).not.toContain('"bold":true')
+  expect(await entry('change-0')).toContain('"label":"a.py"')
   await ui.unmount()
 })
 
@@ -160,10 +192,74 @@ test('selecting a tracked file shows its diff, additions green and deletions red
   await $.classic.PostToolUse(edited('Edit', 'D:/p/src/a.py'))
   const ui = await open($)
   await ui.press({ key: 'change-0' })
-  expect(JSON.stringify(await ui.find({ type: 'Text', text: '+new line' }))).toContain('green')
-  expect(JSON.stringify(await ui.find({ type: 'Text', text: '-old line' }))).toContain('red')
-  expect(await ui.find({ type: 'Text', text: ' keep' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: '@@ -1,3 +1,3 @@' })).toBeDefined()
+  expect(JSON.stringify(await ui.find({ type: 'Text', text: /\+new line$/ }))).toContain('green')
+  expect(JSON.stringify(await ui.find({ type: 'Text', text: /-old line$/ }))).toContain('red')
+  // 前後の行は薄い色。ハンクの見出し（@@ …）は出さない。
+  expect(JSON.stringify(await ui.find({ type: 'Text', text: / keep$/ }))).toContain('"dimColor":true')
+  expect(await ui.find({ type: 'Text', text: /@@/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('the opened diff sits right under its own file, with a dim folder line and line numbers', async ($, on) => {
+  fakeEngine(on, { 'D:/p/docs/a.py': { text: 'x' }, 'D:/p/b.py': { text: 'x' } }, { 'D:/p/docs/a.py': DIFF, 'D:/p/b.py': DIFF })
+  await $.classic.PostToolUse(edited('Edit', 'D:/p/docs/a.py'))
+  await $.classic.PostToolUse(edited('Edit', 'D:/p/b.py'))
+  const ui = await open($)
+  await ui.press({ key: 'change-0' })
+  const tree = await ui.drawn()
+  const first = parentOf(tree, 'change-0')
+  const second = parentOf(tree, 'change-1')
+  // 差分は、選んだファイルの項目の中にある。ほかのファイルの項目にはない。
+  expect(textsOf(first)).toContain('│  2 +new line')
+  expect(textsOf(first)).toContain('│  2 -old line')
+  expect(textsOf(first)).toContain('│  1  keep')
+  expect(textsOf(second).join('')).not.toContain('new line')
+  // フォルダは、名前の下の薄い行。
+  expect(textsOf(first)).toContain('  docs/')
+  expect(JSON.stringify(await ui.find({ type: 'Text', text: '  docs/' }))).toContain('"dimColor":true')
+  // 2 つ目を選ぶと、1 つ目の差分は閉じる。
+  await ui.press({ key: 'change-1' })
+  const after = await ui.drawn()
+  expect(textsOf(parentOf(after, 'change-0')).join('')).not.toContain('new line')
+  expect(textsOf(parentOf(after, 'change-1'))).toContain('│  2 +new line')
+  await ui.unmount()
+})
+
+test('line numbers of four digits keep the text aligned', async ($, on) => {
+  const big = ['@@ -998,2 +998,3 @@', ' x', '+y', ' z'].join(NL)
+  fakeEngine(on, { 'D:/p/a.py': { text: 'x' } }, { 'D:/p/a.py': big })
+  await $.classic.PostToolUse(edited('Edit', 'D:/p/a.py'))
+  const ui = await open($)
+  await ui.press({ key: 'change-0' })
+  const texts = textsOf(parentOf(await ui.drawn(), 'change-0'))
+  expect(texts).toContain('│ 998  x')
+  expect(texts).toContain('│ 999 +y')
+  expect(texts).toContain('│1000  z')
+  await ui.unmount()
+})
+
+test('each file entry is keyed on its own, apart from its button', async ($, on) => {
+  fakeEngine(on, { 'D:/p/a.py': { text: 'x' }, 'D:/p/b.py': { text: 'x' } }, {})
+  await $.classic.PostToolUse(edited('Edit', 'D:/p/a.py'))
+  await $.classic.PostToolUse(edited('Edit', 'D:/p/b.py'))
+  const ui = await open($)
+  const tree = await ui.drawn()
+  expect(parentOf(tree, 'change-item-0')).toBeDefined()
+  expect(parentOf(tree, 'change-item-1')).toBeDefined()
+  expect(JSON.stringify(await ui.find({ key: 'change-0' }))).toContain('"plain":true')
+  await ui.unmount()
+})
+
+test('a gap between two hunks is shown as ⋯, not as the @@ header', async ($, on) => {
+  const two = ['@@ -1,2 +1,2 @@', '-a', '+b', ' c', '@@ -10,2 +10,3 @@', ' x', '+y', ' z'].join(NL)
+  fakeEngine(on, { 'D:/p/a.py': { text: 'x' } }, { 'D:/p/a.py': two })
+  await $.classic.PostToolUse(edited('Edit', 'D:/p/a.py'))
+  const ui = await open($)
+  await ui.press({ key: 'change-0' })
+  const texts = textsOf(parentOf(await ui.drawn(), 'change-0'))
+  expect(texts.filter(text => text.includes('⋯')).length).toBe(1)
+  expect(texts.join('')).not.toContain('@@')
+  expect(texts).toContain('│ 11 +y')
   await ui.unmount()
 })
 
@@ -172,7 +268,7 @@ test('long diff lines wrap instead of being cut off', async ($, on) => {
   await $.classic.PostToolUse(edited('Edit', 'D:/p/src/a.py'))
   const ui = await open($)
   await ui.press({ key: 'change-0' })
-  const line = await ui.find({ type: 'Text', text: '+new line' })
+  const line = await ui.find({ type: 'Text', text: /\+new line$/ })
   expect(line).toBeDefined()
   expect(JSON.stringify(line)).not.toContain('truncate')
   await ui.unmount()
@@ -183,8 +279,8 @@ test('an untracked new file is shown with every line added', async ($, on) => {
   await $.classic.PostToolUse(edited('Write', 'D:/p/new.py'))
   const ui = await open($)
   await ui.press({ key: 'change-0' })
-  expect(JSON.stringify(await ui.find({ type: 'Text', text: '+one' }))).toContain('green')
-  expect(await ui.find({ type: 'Text', text: '+two' })).toBeDefined()
+  expect(JSON.stringify(await ui.find({ type: 'Text', text: /\+one$/ }))).toContain('green')
+  expect(await ui.find({ type: 'Text', text: '│  2 +two' })).toBeDefined()
   await ui.unmount()
 })
 
@@ -283,9 +379,9 @@ test('editing a file again closes its old diff so a stale one is never shown', a
   await $.classic.PostToolUse(edited('Edit', 'D:/p/a.py'))
   const ui = await open($)
   await ui.press({ key: 'change-0' })
-  expect(await ui.find({ type: 'Text', text: '+new line' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /\+new line$/ })).toBeDefined()
   await $.classic.PostToolUse(edited('Edit', 'D:/p/a.py'))
-  expect(await ui.find({ type: 'Text', text: '+new line' })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /\+new line$/ })).toBeUndefined()
   await ui.unmount()
 })
 
@@ -305,7 +401,7 @@ test('a long diff is cut at 500 lines with a note', async ($, on) => {
   const ui = await open($)
   await ui.press({ key: 'change-0' })
   expect(await ui.find({ type: 'Text', text: /500 行まで/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: '+line 498' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: '+line 499' })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /\+line 498$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /\+line 499$/ })).toBeUndefined()
   await ui.unmount()
 })
