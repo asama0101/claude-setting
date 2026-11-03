@@ -385,6 +385,22 @@ def edit_gate(d: str, sid: str | None, state: dict, new_branch: bool = False) ->
     return None
 
 
+def expand_path(word: str) -> Path:
+    """`$VAR`・`${VAR}`・`~` を展開したパス。未定義の変数と、cd で変わる PWD・OLDPWD は、そのまま残す。"""
+    def value(m: re.Match) -> str:
+        name = m.group(1) or m.group(2)
+        found = None if name in ("PWD", "OLDPWD") else os.environ.get(name)
+        if name == "HOME" and not found:
+            found = str(Path.home())
+        if found is None:
+            return m.group(0)
+        if os.name == "nt" and re.match(r"/[A-Za-z](/|$)", found):  # msys 形式（/c/Users/…）を C:/Users/… にする
+            found = f"{found[1].upper()}:{found[2:] or '/'}"
+        return found
+
+    return Path(re.sub(r"\$(?:\{(\w+)\}|(\w+))", value, word)).expanduser()
+
+
 def is_file_op(words: list[str], g: tuple[str, list[str], str | None] | None) -> bool:
     return bool(g and g[0] in ("rm", "mv")) or words[0].lower() in FILE_OP_COMMANDS
 
@@ -393,7 +409,7 @@ def file_op_dir(words: list[str], g: tuple[str, list[str], str | None] | None, c
     """rm・mv などの対象が Git の作業ツリーにあれば、その親フォルダ。すべて作業ツリーの外なら None。"""
     base = segment_dir(cwd, g[2] if g else None)
     targets = g[1] if g else words[1:]
-    paths = [Path(base, Path(t).expanduser()) for t in targets if not t.startswith("-")]
+    paths = [Path(base, expand_path(t)) for t in targets if not t.startswith("-")]
     for p in paths or [Path(base) / "."]:
         d = str(nearest_dir(p))
         if is_work_tree(d):
@@ -418,7 +434,7 @@ def after_cd(words: list[str], cwd: Path) -> Path:
     targets = [w for w in words[1:] if not w.startswith("-")]
     if words[0] != "cd" or not targets:
         return cwd
-    dest = Path(cwd, Path(targets[0]).expanduser())
+    dest = Path(cwd, expand_path(targets[0]))
     return dest if dest.is_dir() else cwd
 
 
