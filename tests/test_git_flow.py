@@ -663,6 +663,12 @@ def test_settings_ベアな環境でも各hookとstatuslineはエラー出力な
         assert (r.returncode, r.stdout, r.stderr) == (0, b"", b""), c
 
 
+def test_settings_powershellツールは明示的に無効にする(settings):
+    # Hook と permissions.ask は Bash ツールだけを対象にする。PowerShell ツールが有効だと、これらを通らない
+    assert settings["env"]["CLAUDE_CODE_USE_POWERSHELL_TOOL"] == "0"
+    assert settings["env"]["CLAUDE_CODE_ENABLE_TODO_TOOLS"] == "1"  # 既存の項目は残る
+
+
 def test_settings_statuslineもpy_python3_pythonの順に試す形(settings):
     c = settings["statusLine"]["command"]
     assert re.fullmatch(
