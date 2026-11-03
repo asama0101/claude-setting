@@ -25,7 +25,7 @@ Claude Code のセッション中に、GitHub Flow（作業ブランチ → コ�
 - 実装方式は、`settings.json` の Hooks（シェルコマンドを、SessionStart・PreToolUse・PostToolUse・Stop のイベントで実行する仕組み）。Mods（plugin の中の JavaScript を Claude Code のプロセス内で動かす仕組み）は使わない。理由は決定ログの Q23。
 - 実装は Python。既存の Hook と同じく、stdin の JSON を読み、予期しない例外は握りつぶして終了コード 0 で終わる。
 - 「Hook の失敗で作業を止めない」方針を守る。ただし、意図した拒否（deny）と促し（block）は、JSON の出力で返す。
-- Windows 11 で動作を確認する。Linux は、環境に入れても無害であること（エラー表示が出ない）を保証範囲とし、実機での確認は未検証とする。
+- Windows 11 で動作を確認する。Linux は、環境に入れても無害であること（エラー表示が出ない）を保証範囲とする。ubuntu-latest の GitHub Actions で pytest を一度だけ実行し、125 件が通った（Windows 専用の 1 件はスキップ）。
 - Hook は `~\.claude` に置くので、Git を使うすべてのプロジェクトに効く。
 
 ### 変更するもの
@@ -80,7 +80,7 @@ Claude Code のセッション中に、GitHub Flow（作業ブランチ → コ�
 
 ### Hook の動き
 
-「既定ブランチ」は、`origin/HEAD` が指すブランチ。なければ `main`、`master` の順に存在するもの。「GitHub のリモート」は、`origin` の URL に `github.com` を含むもの。「セッションの免除」は、`allow-main <session_id>` で作る印で、そのセッションの間だけ有効。Bash で実行するコマンドには `session_id` が渡らないので、Hook の拒否理由に `session_id` を埋め込み、Claude にそのまま引数として渡させる。印は、一時フォルダの `claude-git-flow\<session_id>.json` に置く（セッションごとに1ファイル。同じセッションの Hook はイベントの順に動くので競合しない前提で、並列実行時の挙動は実機で確認する）。
+「既定ブランチ」は、`origin/HEAD` が指すブランチ。なければ `main`、`master` の順に存在するもの。「GitHub のリモート」は、`origin` の URL に `github.com` を含むもの。「セッションの免除」は、`allow-main <session_id>` で作る印で、そのセッションの間だけ有効。Bash で実行するコマンドには `session_id` が渡らないので、Hook の拒否理由に `session_id` を埋め込み、Claude にそのまま引数として渡させる。印は、一時フォルダの `claude-git-flow\<session_id>.json` に置く（セッションごとに1ファイル。同じセッションの Hook はイベントの順に動くので競合しない前提。6個の Bash を1回の応答で出した後も、状態ファイルは壊れず、`allow_main` が残ることを実機で確認した）。
 
 | 契機 | サブコマンド | 動作 |
 |---|---|---|
@@ -113,7 +113,7 @@ Claude Code のセッション中に、GitHub Flow（作業ブランチ → コ�
 2. `hooks/git_flow.py` を実装する → 検証: 同じテストが、すべて通る。
 3. `settings.json` を直す → 検証: `py -c "import json;json.load(open('settings.json',encoding='utf-8'))"` が通る。Linux 相当の確認として、`py` を PATH から外した環境で起動方法のコマンドを実行し、エラー出力がなく終了コード 0 になる。
 4. `hooks/uncommitted_warn.py` を削除し、`docs/git-flow.md` と `README.md` を直す → 検証: `grep -r uncommitted_warn` が、`.git` 以外でヒットしない。README の件数を `settings.json` と照合する。
-5. 実機で、一時リポジトリに対し、Claude Code から各 Hook を確認する → 検証: 受入条件 3〜9 の動作を目視で確認し、結果を報告する（確認できない項目は「未検証」と書く）。特に、PostToolUse が Bash の失敗時に動かないこと、同じイベントの Hook の並列実行時の挙動、SessionStart の `systemMessage` がユーザーの画面に出ることは、仕様を未確認なので実機で確かめる。
+5. 実機で、一時リポジトリに対し、Claude Code から各 Hook を確認する → 検証: 受入条件 3〜9 の動作を目視で確認し、結果を報告する（確認できない項目は「未検証」と書く）。特に、PostToolUse が Bash の失敗時に動かないこと、同じイベントの Hook の並列実行時の挙動、SessionStart の `systemMessage` がユーザーの画面に出ることは、仕様を未確認なので実機で確かめる。結果: 確認済み。SessionStart の `systemMessage`（ユーザーの画面）と `additionalContext`（Claude）、`main` 上のブランチ確認、commit・force push の拒否、`gh pr merge` の確認（`skip` と `v0.1.0`）、Stop の促し（commit・push・PR）、`allow-main`、並列実行。PostToolUse は、失敗した Bash でも動いた（想定と逆）。
 6. CLAUDE.md の規則に従い、完了報告の前に、文脈を共有しない新規のサブエージェントが「正しさと要件」「過剰実装とリスク」の観点でレビューを行う（ファイル数が2以上なので、観点ごとに別のサブエージェント） → 検証: 指摘と対応を報告する。
 
 ## 受入条件
@@ -155,7 +155,7 @@ Claude Code のセッション中に、GitHub Flow（作業ブランチ → コ�
 - `readme_guard.py` の Git 判定の追加。
 - `statusline.py` と、`py` を使うほかの設定の Linux 対応。
 - Bash でのファイル削除・移動の網羅的な検出（主要な4種類のコマンドだけ）。
-- Linux 実機での動作確認（未検証）。
+- Linux 実機での継続的な動作確認（CI）。一度だけ ubuntu-latest で pytest を実行して確認した。
 - PowerShell ツールなど、Bash ツール以外の操作の検査。
 - コミットメッセージと PR タイトルの形式の検査。
 - プレリリース版（`-rc.N`）のタグ。
@@ -164,7 +164,7 @@ Claude Code のセッション中に、GitHub Flow（作業ブランチ → コ�
 
 ## リスク
 
-- Stop で `readme_guard.py` と `git_flow.py stop` の両方が block すると、Claude が2つの確認を行う。並列に実行されうるが、状態ファイルは別々で、どちらも「同じ状態では1回だけ」なので、無限には続かない。並列時の理由の扱いは、実機で確認する（未検証）。
+- Stop で `readme_guard.py` と `git_flow.py stop` の両方が block すると、Claude が2つの確認を行う。並列に実行されうるが、状態ファイルは別々で、どちらも「同じ状態では1回だけ」なので、無限には続かない。実機では、2つの理由が1回の応答にまとめて届くことを確認した。
 - `session-start` の `git fetch` で、最大5秒、開始が遅れる。
 - 全 Git リポジトリで、main への直接の commit・push が、免除なしでは拒否される。作業の進め方が変わる。「切らない」を選べば、そのセッションだけ外せる。
 - GitHub のリモートを持つすべてのリポジトリで、`gh pr merge` のたびにリリースの確認が出る。タグが1つもないリポジトリでも出る（「しない」を選べば進める）。
@@ -172,7 +172,7 @@ Claude Code のセッション中に、GitHub Flow（作業ブランチ → コ�
 - Bash の拒否の判定は、コマンド文字列の照合なので、書き方によって取りこぼす（`bash -c` で包んだ `git commit` など）。拒否を回避する目的ではなく、既定の誤操作を防ぐ範囲とする。
 - `force push` は、CLAUDE.md の「確認すれば実行できる」より強く、常に拒否される。必要なときは、ユーザーが `!` 付きで自分の端末から実行する。
 - `gh` が未ログインのときは、PR 作成・リリース作成の指示が実行できない。Claude は、その旨を報告して止まる。
-- Linux 実機では確認していない（保証するのは、エラー表示が出ないことだけ）。
+- Linux では、ubuntu-latest の GitHub Actions で一度だけ pytest を実行して確認した（125 件が通り、Windows 専用の 1 件はスキップ）。継続的な CI はない。`py`・`python3`・`python` が見つからない環境の確認は、ubuntu-latest では `python3` が `/bin` にあるため作れず、Windows だけで行った。
 - `git tag` の書式の検査は、GitHub 以外のリモートや、別の命名規則のリポジトリでも効く。必要なときは、ユーザーが `!` 付きで自分の端末から実行する。
 - `cd` の行き先が分からないとき（`cd -`・`$VAR`・存在しないフォルダ）は、作業フォルダを変えずに判定する。引用符の外に `(` か `||` がある行では、`cd` が後ろに効くとは限らないので、`cd` の前後のフォルダを両方検査し、どちらかが拒否なら拒否する。その行でのブランチ作成は、「新しいブランチ上」の扱いに使わない。`cd $(…)` や `pushd` のように行き先が静的に分からない場合は、元のフォルダで判定する（素通りしうる）。`git switch -c foo || git commit` のように、ブランチ作成が失敗しても続く書き方は、新しいブランチ上として扱う。`rm` の対象が複数のリポジトリにまたがるときは、最初の作業ツリー内の対象だけで判定する。
 - `rm`・`mv` の対象と `cd` の行き先に含まれる `$VAR`・`${VAR}` は、Hook の環境変数で展開して判定する（未定義の変数と `PWD`・`OLDPWD` は展開せず、作業フォルダ基準の相対パスとして扱う）。次の場合は、シェルとの食い違いで素通りしうる: 同じ行で代入した変数（`X=.; rm $X/f`）、単一引用符の中の `$VAR`、`~` と `$HOME` が別のフォルダを指す環境。
