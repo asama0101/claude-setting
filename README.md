@@ -105,15 +105,19 @@ foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','reference','
 
 ### mod `session-desk` を使う
 
-サイド UI パネルを、1 つのセッションだけで試す。この mod は、`settings.json` には登録しない。
+サイド UI パネルを、毎回の起動で出す。この mod は、`settings.json` には登録しない。`~\.claude\skills\session-desk\` に置くと、Claude Code が起動のたびに読み込む。
 
-1. リポジトリのフォルダで、mod を読み込んで起動する。Claude Code は 2.1.287 以降が要る。パネルは、端末の幅が 144 列以上なら自動で開く。それ未満の幅では、入力欄の上の「サイドパネルの開閉」ボタンを押すと開く。
+1. mod をコピーする。Claude Code は 2.1.287 以降が要る。`~\.claude\skills\session-desk\` がすでにあると、コピーで二重のフォルダができる。更新するときは、先にそのフォルダを削除してからコピーし直す。
 
    ```powershell
-   claude --plugin-dir ".\mods\session-desk"
+   Copy-Item -Recurse ".\mods\session-desk" "$HOME\.claude\skills\session-desk"
    ```
 
-2. パネルを開いた状態で、プロンプトを 1 つ送る。期待される結果: パネルの「履歴」タブに、「1. 」で始まる 1 行が出る。「サイドパネルの開閉」ボタンを押すと、パネルが閉じる。もう一度押すと、開く。
+   元に戻すときは、`~\.claude\skills\session-desk\` を削除する。
+
+2. `claude` を起動する。パネルは、端末の幅が 144 列以上なら自動で開く。それ未満の幅では、入力欄の上の「サイドパネルの開閉」ボタンを押すと開く。1 つのセッションだけで試すときは、コピーせずに、`claude --plugin-dir ".\mods\session-desk"` で起動する。
+
+3. パネルを開いた状態で、プロンプトを 1 つ送る。期待される結果: パネルの「履歴」タブに、「1. 」で始まる 1 行が出る。「サイドパネルの開閉」ボタンを押すと、パネルが閉じる。もう一度押すと、開く。
 
 パネルのタブは、3 つある。いま開いているタブには「▸」が付き、ほかのタブは薄く出る。
 
