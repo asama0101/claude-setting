@@ -9,7 +9,7 @@ Python の仮想環境（venv）を作る・使うときに従う規則。1 は�
 
 - 規則には **必須** と **推奨** がある。必須を外すときは、利用者に理由を示して了承を得る。
 - 各規則の末尾に、確認方法を〔機械〕（コマンドで確認できる）か〔目視〕（レビューで見る）で示す。
-- 2 は、`~\.claude\docs\plugin-rules.md` の A1・A4・A5・A6・A7・H5 の Python の部分である。言語を問わない部分は `plugin-rules.md` に残る。
+- 2 は、`~\.claude\reference\plugin-rules.md` の A1・A4・A5・A6・A7・H5 の Python の部分である。言語を問わない部分は `plugin-rules.md` に残る。
 - Python の書き方は `python-style.md`、テストは `python-testing.md` に従う。ここには重ねて書かない。
 
 ## 1. 開発用の venv

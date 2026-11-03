@@ -188,7 +188,7 @@ def pr_title(d: str, args: list[str]) -> str | None:
 
 
 def next_version(latest: str | None, messages: list[str]) -> str:
-    """前のタグとコミット件名から、次の版（`vX.Y.Z`）または `skip` を返す。docs/git-flow.md の定義に従う。"""
+    """前のタグとコミット件名から、次の版（`vX.Y.Z`）または `skip` を返す。reference/git-flow.md の定義に従う。"""
     if latest is None:
         return "v0.1.0"
     major, minor, patch = (int(x) for x in latest[1:].split("."))
@@ -370,7 +370,7 @@ def merge_reason(d: str, sid: str | None, args: list[str], default: str) -> str:
         f"最新タグ: {latest or 'なし'}\n"
         f"{ref} のタグ以降のコミット件名（最大20件）:\n" + "".join(f"- {s}\n" for s in subjects) +
         f"マージする PR のタイトル: {title or '取得できず'}\n"
-        f"提案する版: {version}（docs/git-flow.md の「バージョン表記の定義」による。skip はリリースを作らない）\n"
+        f"提案する版: {version}（reference/git-flow.md の「バージョン表記の定義」による。skip はリリースを作らない）\n"
         "次の順で進めてください。\n"
         f"1. AskUserQuestion でユーザーに「リリースする（既定: {version}）／しない」を聞く。\n"
         f"2. `{helper_command('allow-merge', str(sid), '<版 または skip>')}` を Bash ツールで実行する。\n"
@@ -393,7 +393,7 @@ def tag_reason(args: list[str]) -> str | None:
     if not names or TAG_RE.fullmatch(names[0]):
         return None
     return (f"タグ名 {names[0]} は、書式 vMAJOR.MINOR.PATCH（正規表現 {TAG_PATTERN}）に合いません。"
-            "docs/git-flow.md の「バージョン表記の定義」に合わせた名前にしてください。")
+            "reference/git-flow.md の「バージョン表記の定義」に合わせた名前にしてください。")
 
 
 # --- 契機ごとの処理 ---------------------------------------------------------

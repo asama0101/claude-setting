@@ -731,8 +731,8 @@ def test_uncommitted_warnは削除され参照が残っていない():
         assert "uncommitted_warn" not in p.read_text(encoding="utf-8"), p.name
 
 
-def test_docs_git_flowに必要な内容がある():
-    text = (ROOT / "docs" / "git-flow.md").read_text(encoding="utf-8")
+def test_reference_git_flowに必要な内容がある():
+    text = (ROOT / "reference" / "git-flow.md").read_text(encoding="utf-8")
     steps = re.findall(r"^[1-8]\. ", text.split("## 基本フロー")[1].split("##")[0], re.MULTILINE)
     assert len(steps) == 8
     for expected in ("## バージョン表記の定義", r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$",
