@@ -1,5 +1,5 @@
 ---
-status: 未対応
+status: 完了
 plan: （未作成）
 ---
 # SPEC: Claude Code の作業環境の整備（要件 A〜F）
