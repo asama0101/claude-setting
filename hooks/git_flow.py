@@ -16,12 +16,14 @@ Git 管理外のフォルダでは何もしない。Hook の失敗で作業を�
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -36,6 +38,7 @@ GIT_TIMEOUT = 5
 RETRIES = 10
 RETRY_WAIT_SEC = 0.02
 FETCH_TIMEOUT = 5
+KILL_TIMEOUT = 2
 MAX_LINES = 10  # 理由に列挙する行数の上限
 
 TAG_RE = re.compile(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
@@ -56,15 +59,44 @@ TAG_VALUE_FLAGS = {"-m", "-F", "-u", "--message", "--file", "--local-user"}
 # --- Git の呼び出し ---------------------------------------------------------
 
 
-def run(argv: list[str], cwd: str | Path, timeout: int = GIT_TIMEOUT,
-        env: dict[str, str] | None = None) -> tuple[int, str] | None:
+def run(argv: list[str], cwd: str | Path, timeout: int = GIT_TIMEOUT) -> tuple[int, str] | None:
     """外部コマンドを実行し、(終了コード, 標準出力) を返す。起動できない・時間切れなら None。"""
     try:
         r = subprocess.run(  # noqa: S603
-            argv, cwd=str(cwd), capture_output=True, timeout=timeout, check=False, env=env)
+            argv, cwd=str(cwd), capture_output=True, timeout=timeout, check=False)
     except (OSError, subprocess.TimeoutExpired):
         return None
     return r.returncode, r.stdout.decode("utf-8", errors="replace").rstrip()
+
+
+def fetch(d: str) -> bool:
+    """`git fetch` を FETCH_TIMEOUT 秒だけ待つ。成功したら True。時間切れなら、子プロセスごと止めて False。
+
+    出力のパイプを使わない。子の git-remote-http がパイプを握ると、親を止めても終了を待ち続けるため。
+    """
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
+    try:
+        proc = subprocess.Popen(  # noqa: S603
+            ["git", "fetch", "--quiet"],  # noqa: S607
+            cwd=d, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            start_new_session=os.name != "nt",
+        )
+    except OSError:
+        return False
+    try:
+        return proc.wait(FETCH_TIMEOUT) == 0
+    except subprocess.TimeoutExpired:
+        # 子プロセスごと止める。止められなくても（taskkill がない、権限がない）、親は止めて待たずに戻る
+        with contextlib.suppress(OSError, subprocess.TimeoutExpired):
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],  # noqa: S603, S607
+                               capture_output=True, check=False, timeout=KILL_TIMEOUT)
+            else:
+                os.killpg(proc.pid, signal.SIGKILL)
+        proc.kill()
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            proc.wait(KILL_TIMEOUT)
+        return False
 
 
 @cache
@@ -569,14 +601,13 @@ def session_start(data: dict) -> None:
     prune_old_states()
     parts = [f"ブランチ: {current_branch(d) or '(detached)'}", f"未コミット: {len(status_lines(d))}件"]
     if ok(d, "remote"):
-        no_prompt = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
-        fetched = run(["git", "fetch", "--quiet"], d, FETCH_TIMEOUT, no_prompt)  # noqa: S607
+        fetched = fetch(d)
         ab, note = ahead_behind(d), ""
         default = default_branch(d)
         if ab is None and default:
             ab, note = ahead_behind(d, f"origin/{default}"), f"（上流なし。origin/{default} と比較）"
         text = f"ahead {ab[0]}・behind {ab[1]}{note}" if ab else "上流ブランチなし"
-        if not fetched or fetched[0] != 0:
+        if not fetched:
             text += "（取得できず。前回取得時点の差）"
         parts.append("リモート差: " + text)
     lines = [" / ".join(parts)]
