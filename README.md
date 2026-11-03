@@ -6,7 +6,7 @@ Claude Code を Windows で使う人が、作業ルール、git 操作の確認�
 ## 機能
 
 - 作業の進め方を、規則（`CLAUDE.md`、`rules/`、`docs/`）で決める。Claude Code が、実装の前に計画を出し、変更をサブエージェント（別の文脈で作業する Claude）のレビューにかけ、危ない操作の前に確認する。
-- git の commit・push・タグ作成と、PR（プルリクエスト）の作成・マージ（`gh pr merge`）、GitHub Release の作成（`gh release create`）の前に、確認を必ず出す。auto mode（許可の確認を自動で判断するモード）でも出る。
+- git の push・タグ作成と、PR（プルリクエスト）のマージ（`gh pr merge`）、GitHub Release の作成（`gh release create`）の前に、確認を必ず出す。auto mode（許可の確認を自動で判断するモード）でも出る。
 - ステータスラインに、モデル、フォルダ、ブランチ、コンテキスト（Claude が一度に扱える量）の使用率を出す。いまの状態を、画面の下端で確かめられる。
 - README の更新漏れと、Git/GitHub のフロー（作業ブランチ → コミット → push → PR → squash マージ → タグ・リリース）を、hook（セッションの開始・ツールの実行・応答の終了の節目で自動実行されるコマンド）が知らせ、守らせる。フローの詳細は [docs/git-flow.md](docs/git-flow.md) にある。
 - コードの変更を最小にするスキル `ponytail`（`skills/`）が使える。
@@ -111,7 +111,7 @@ foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','docs','rules
 | `permissions.disableBypassPermissionsMode` | `disable` | 権限確認を省略するモードを使えなくする。 |
 | `permissions.allow` | 11 件 | 確認なしで実行するコマンド。 |
 | `permissions.deny` | 56 件 | 読み書きを禁じるパスと、禁じるコマンド。 |
-| `permissions.ask` | 11 件 | 確認を必ず出すコマンド。 |
+| `permissions.ask` | 9 件 | 確認を必ず出すコマンド。 |
 | `attribution.sessionUrl` | `false` | コミットと PR に、セッションのリンクを付けない。 |
 | `remoteControlAtStartup` | `true` | 起動時に Remote Control を有効にする。 |
 | `model` | `sonnet` | 既定のモデル。 |
@@ -120,7 +120,7 @@ foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','docs','rules
 | `tui` | `fullscreen` | 画面の表示方式。 |
 
 - `permissions.allow` と `permissions.deny` の中身は、`settings.json` で確認する。`deny` は、`.env`・`.ssh`・認証情報のファイルを守る。プロジェクトの `.env.example` や `.npmrc` の編集も、拒否される。
-- `permissions.ask` は、`git commit`・`git push`・`git tag`・`gh pr create`・`gh pr merge`・`gh release create`・`git reset --hard`・`git clean`・`git checkout --`・`git restore`・`git checkout .` の 11 件である。auto mode でも確認が出る。
+- `permissions.ask` は、`git push`・`git tag`・`gh pr merge`・`gh release create`・`git reset --hard`・`git clean`・`git checkout --`・`git restore`・`git checkout .` の 9 件である。`git commit` と `gh pr create` は、確認の対象外である（`main` 上のコミットは Hook が拒否する）。auto mode でも確認が出る。
 - `git restore --staged` にも確認が出る。`git checkout .` は完全一致なので、`git checkout ./dir` や `git checkout HEAD -- f` は対象外である。
 - `attribution.sessionUrl` を `false` にしても、`Co-Authored-By`（コミットに付く共著者の行）と PR の定型文は、既定のまま付く。
 - `remoteControlAtStartup` が `true` だと、Remote Control（ほかの端末から、実行中のセッションを見たり操作したりする機能）が有効になる。不要なら `false` にする。
