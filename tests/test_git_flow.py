@@ -228,7 +228,8 @@ def test_パスにバックスラッシュを含むgit_Cでもその場所のリ
 
 @pytest.mark.parametrize("command", ["cd - && git commit -m x", "cd $PWD && git commit -m x",
                                      "cd -P sub && git commit -m x"])
-def test_cdの行き先が分からないときは元のフォルダで判定する(command, repo, hook):
+def test_cdの行き先が分からないときは元のフォルダで判定する(command, repo, hook, env):
+    env.pop("PWD", None)  # 環境によって値が違うので、未定義にそろえる
     (repo.path / "sub").mkdir()
     assert denied(hook("pre-tool", bash_in(repo, command))) is not None
 
@@ -290,6 +291,40 @@ def test_状態ファイルの置き換えがロックで失敗しても再試�
     gf.save_state("s1", {"allow_main": True})
     assert len(calls) == 3
     assert gf.load_state("s1") == {"allow_main": True}
+
+
+@pytest.mark.parametrize("var", ["$OUTSIDE", "${OUTSIDE}"])
+def test_環境変数を展開して作業ツリー外のrmは止めず_作業ツリー内は止める(var, repo, hook, env, tmp_path):
+    env["OUTSIDE"] = str(tmp_path / "outside")
+    env["INSIDE"] = str(repo.path)
+    assert hook("pre-tool", bash_in(repo, f"rm {var}/x.txt")).out == ""
+    assert denied(hook("pre-tool", bash_in(repo, "rm $INSIDE/README.md"))) is not None
+    assert denied(hook("pre-tool", bash_in(repo, "rm $NOT_DEFINED_VAR/x.txt"))) is not None
+
+
+@pytest.mark.skipif(os.name != "nt", reason="msys 形式のパス（/d/...）は Windows だけ")
+def test_msys形式の値は_ドライブ付きのパスに直して判定する(repo, hook, env):
+    posix = repo.path.as_posix()
+    env["INSIDE"] = f"/{posix[0].lower()}{posix[2:]}"
+    assert denied(hook("pre-tool", bash_in(repo, "rm $INSIDE/README.md"))) is not None
+
+
+@pytest.mark.parametrize("name", ["PWD", "OLDPWD"])
+def test_PWDとOLDPWDは展開せず_作業フォルダ基準の相対として判定する(name, repo, hook, env, tmp_path):
+    env[name] = str(tmp_path / "outside")
+    assert denied(hook("pre-tool", bash_in(repo, f"rm ${name}/x.txt"))) is not None
+
+
+def test_値が空の変数は空として展開する(repo, hook, env):
+    env["EMPTY"] = ""
+    assert hook("pre-tool", bash_in(repo, "rm $EMPTY/etc-not-in-repo/x")).out == ""
+
+
+def test_cdの行き先の環境変数を展開して_その場所のリポジトリで判定する(repo, make_repo, hook, env, git):
+    other = make_repo("other", remote=None)
+    git(repo.path, "switch", "-c", "feat/x")
+    env["OTHER"] = str(other.path)
+    assert denied(hook("pre-tool", bash_in(repo, "cd $OTHER && git commit -m x"))) is not None
 
 
 def test_既定ブランチ上のff_onlyによるリモート追従は拒否しない(repo, hook):
