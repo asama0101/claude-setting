@@ -8,7 +8,7 @@ Claude Code を Windows で使う人が、作業ルール、git 操作の確認�
 - 作業の進め方を、規則（`CLAUDE.md`、`rules/`、`docs/`）で決める。Claude Code が、実装の前に計画を出し、変更をサブエージェント（別の文脈で作業する Claude）のレビューにかけ、危ない操作の前に確認する。
 - 未コミット変更の破棄やファイルの削除など、修復できない破壊的コマンド（`git reset --hard`・`git clean`・`rm -rf` など）の前に、確認を必ず出す。auto mode（許可の確認を自動で判断するモード）でも出る。
 - ステータスラインに、モデル、フォルダ、ブランチ、コンテキスト（Claude が一度に扱える量）の使用率を出す。いまの状態を、画面の下端で確かめられる。mod `session-desk`（`mods/session-desk/`）を読み込むと、サイド UI パネルに、送ったプロンプトの履歴、定型文、ファイルの差分が出る。
-- Git/GitHub のフロー（作業ブランチ → コミット → push → PR → squash マージ → タグ・リリース）を、hook（セッションの開始・ツールの実行・応答の終了の節目で自動実行されるコマンド）が知らせ、守らせる。フローの詳細は [docs/git-flow.md](docs/git-flow.md) にある。
+- Git/GitHub のフロー（作業ブランチ → コミット → push → PR → squash マージ → タグ・リリース）を、hook（セッションの開始・ツールの実行・応答の終了の節目で自動実行されるコマンド）が知らせ、守らせる。フローの詳細は [docs/git-flow.md](docs/git-flow.md) にある。別の作業をしていても気づけるよう、許可の確認・選択肢の質問・質問や依頼で終わる応答のときに、Windows のトースト通知（画面の隅に出る通知）を出す（作業が終わっただけの応答では出ない）。
 - コードの変更を最小にするスキル `ponytail`（`skills/`）が使える。
 
 ## 前提条件
@@ -18,6 +18,7 @@ Claude Code を Windows で使う人が、作業ルール、git 操作の確認�
 - Git。確認: `git --version`（動作確認した版は 2.52）。
 - GitHub CLI（`gh` コマンド）。GitHub 上のリポジトリで PR とリリースの工程を使うときに要る。確認: `gh --version`（動作確認した版は 2.98.0）。
 - PowerShell 5.1 以降。導入の手順は、PowerShell で実行する。確認: `$PSVersionTable.PSVersion`（動作確認した版は 5.1）。hook のコマンドは、Git Bash でも PowerShell でも動く。
+- トースト通知を見るには、Windows の設定で PowerShell の通知をオンにし、集中モード（通知を止める設定）をオフにする。
 - Claude Code。確認: `claude --version`（動作確認した版は 2.1.316）。
 
 ## 導入方法

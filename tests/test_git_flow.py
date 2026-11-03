@@ -630,7 +630,7 @@ def test_settings_新しいhookが登録されている(settings):
 
 def test_settings_hookのコマンドはすべてpy_python3_pythonの順に試す形(settings):
     commands = all_hook_commands(settings)
-    assert len(commands) == 4  # readme_guard の 2 件を外した（SPEC A-6）
+    assert len(commands) == 7  # git_flow の 4 件（readme_guard の 2 件を外した。SPEC A-6）+ notify の 3 件
     for c in commands:
         m = re.fullmatch(
             r'py (?P<a>"[^"]+"[^|]*?) 2>/dev/null \|\| python3 (?P=a) 2>/dev/null '
