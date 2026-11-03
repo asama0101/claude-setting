@@ -639,18 +639,72 @@ def test_settings_hookのコマンドはすべてpy_python3_pythonの順に試�
         assert m, c
 
 
-def test_settings_ベアな環境でも各hookはエラー出力なしで終了コード0(settings, tmp_path):
+def find_bash():
     candidates = [p / "bin" / "bash.exe" for p in Path(shutil.which("git")).parents] + [Path("/bin/bash")]
     bash = next((p for p in candidates if p.exists()), None)
     if bash is None:
         pytest.skip("git に同梱の bash か /bin/bash が見つからない（環境要因）")
-    bare_env = {"PATH": str(bash.parent), "HOME": str(tmp_path)}
+    return bash
+
+
+def bash_env(path, home):
+    e = {"PATH": path, "HOME": str(home)}
     if os.environ.get("SYSTEMROOT"):
-        bare_env["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
-    for c in all_hook_commands(settings):
+        e["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
+    return e
+
+
+def test_settings_ベアな環境でも各hookとstatuslineはエラー出力なしで終了コード0(settings, tmp_path):
+    bash = find_bash()
+    bare_env = bash_env(str(bash.parent), tmp_path)
+    for c in [*all_hook_commands(settings), settings["statusLine"]["command"]]:
         r = subprocess.run([str(bash), "-c", c], env=bare_env, capture_output=True, input=b"{}",
                            timeout=60, check=False)
         assert (r.returncode, r.stdout, r.stderr) == (0, b"", b""), c
+
+
+def test_settings_statuslineもpy_python3_pythonの順に試す形(settings):
+    c = settings["statusLine"]["command"]
+    assert re.fullmatch(
+        r'py (?P<a>"[^"]+") 2>/dev/null \|\| python3 (?P=a) 2>/dev/null '
+        r'\|\| python (?P=a) 2>/dev/null \|\| true', c), c
+    assert "statusline.py" in c
+
+
+def test_statuslineのコマンドはpyがなくてもpythonで動き_出力はREADMEの例と同じ(settings, tmp_path):
+    bash = find_bash()
+    (tmp_path / ".claude").mkdir()
+    shutil.copy(ROOT / "statusline.py", tmp_path / ".claude" / "statusline.py")
+    path = os.pathsep.join([str(bash.parent), str(Path(sys.executable).parent)])  # py は PATH にない
+    r = subprocess.run(
+        [str(bash), "-c", settings["statusLine"]["command"]], env=bash_env(path, tmp_path), capture_output=True,
+        input=b'{"model":{"display_name":"Test"},"workspace":{"current_dir":"C:/work"}}', timeout=60, check=False,
+    )
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", r.stdout.decode("utf-8"))
+    assert (r.returncode, r.stderr) == (0, b"")
+    assert plain.splitlines() == ["🤖 Test │ 📁 C:/work", "💬 ctx --"]
+
+
+def test_autocrlfが有効な環境でcloneしても_gitattributesがあれば作業ファイルはLF(tmp_path, git, env):
+    def make_source(name, with_attributes):
+        src = tmp_path / name
+        src.mkdir()
+        git(src, "init", "-b", "main")
+        if with_attributes:
+            shutil.copy(ROOT / ".gitattributes", src / ".gitattributes")
+        (src / "a.txt").write_bytes(b"x\ny\n")
+        git(src, "add", "-A")
+        git(src, "commit", "-m", "chore: init")
+        return src
+
+    def cloned_bytes(src, name):
+        dst = tmp_path / name
+        subprocess.run(["git", "-c", "core.autocrlf=true", "clone", "-q", str(src), str(dst)],
+                       env=env, check=True, capture_output=True)
+        return (dst / "a.txt").read_bytes()
+
+    assert cloned_bytes(make_source("plain", False), "plain-clone") == b"x\r\ny\r\n"  # 前提: 指定がないと CRLF
+    assert cloned_bytes(make_source("attr", True), "attr-clone") == b"x\ny\n"
 
 
 def test_settings_permissions_askにgh_release_createがあり件数がreadmeと一致する(settings):

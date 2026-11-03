@@ -158,7 +158,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "py \"$HOME/.claude/statusline.py\"",
+    "command": "py \"$HOME/.claude/statusline.py\" 2>/dev/null || python3 \"$HOME/.claude/statusline.py\" 2>/dev/null || python \"$HOME/.claude/statusline.py\" 2>/dev/null || true",
     "refreshInterval": 30
   },
   "enabledPlugins": {
