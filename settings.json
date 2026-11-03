@@ -196,11 +196,40 @@
     "refreshInterval": 30
   },
   "enabledPlugins": {
-    "skill-creator@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
-    "code-review@claude-plugins-official": true,
-    "claude-md-management@claude-plugins-official": true
+    "claude-md-management@claude-plugins-official": true,
+    "pr-review-toolkit@anthropic-plugin-directory": true,
+    "pj-lens@pj-lens": true,
+    "grill-form@grill-form": true,
+    "vault-kb@vault-kb": true,
+    "pptx-deck@pptx-deck": true
+  },
+  "extraKnownMarketplaces": {
+    "grill-form": {
+      "source": {
+        "source": "github",
+        "repo": "asama0101/grill-form"
+      }
+    },
+    "pj-lens": {
+      "source": {
+        "source": "github",
+        "repo": "asama0101/pj-lens"
+      }
+    },
+    "vault-kb": {
+      "source": {
+        "source": "github",
+        "repo": "asama0101/vault-kb"
+      }
+    },
+    "pptx-deck": {
+      "source": {
+        "source": "github",
+        "repo": "asama0101/pptx-deck"
+      }
+    }
   },
   "language": "japanese",
   "effortLevel": "high",
