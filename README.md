@@ -121,6 +121,7 @@ foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','docs','rules
 
 - `permissions.allow` と `permissions.deny` の中身は、`settings.json` で確認する。`deny` は、`.env`・`.ssh`・認証情報のファイルを守る。プロジェクトの `.env.example` や `.npmrc` の編集も、拒否される。
 - `permissions.ask` は、`git push`・`git tag`・`gh pr merge`・`gh release create`・`git reset --hard`・`git clean`・`git checkout --`・`git restore`・`git checkout .` の 9 件である。`git commit` と `gh pr create` は、確認の対象外である（`main` 上のコミットは Hook が拒否する）。auto mode でも確認が出る。
+- `env` の `CLAUDE_CODE_USE_POWERSHELL_TOOL` を `0` にして、PowerShell ツール（PowerShell でコマンドを実行する Claude Code のツール）を無効にしている。hook と `permissions.ask` は Bash ツールだけを対象にするので、PowerShell ツールが有効だと、これらを通らずに `git push` などが実行される。Git Bash がある Windows では、`permissions.deny` に Bash のルール（`Bash(sudo *)`）があるだけでも PowerShell ツールは無効になるが、ルールを変えると有効に戻るので、明示的に無効にしてある。
 - `git restore --staged` にも確認が出る。`git checkout .` は完全一致なので、`git checkout ./dir` や `git checkout HEAD -- f` は対象外である。
 - `attribution.sessionUrl` を `false` にしても、`Co-Authored-By`（コミットに付く共著者の行）と PR の定型文は、既定のまま付く。
 - `remoteControlAtStartup` が `true` だと、Remote Control（ほかの端末から、実行中のセッションを見たり操作したりする機能）が有効になる。不要なら `false` にする。
