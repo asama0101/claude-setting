@@ -5,184 +5,62 @@ paths:
 
 # Python の書き方の規則
 
-Python のコードを書く、または変更するときに従う規則。プラグインに限らず、Python 全般に当てはまる。標準は PEP 8（スタイル）・PEP 257（docstring）・PEP 484/526/585/604（型）・PEP 621（プロジェクトのメタデータ）に従う。出典は末尾。
+Python のコードを書く、または変更するときに従う規則。PEP 8・PEP 257・PEP 484 などの型ヒント・ruff の既定に従う。ここには、標準が定めないプロジェクトの決定だけを書く。
 
-- 規則には **必須** と **推奨** がある。推奨は、守らない理由があれば外してよい。必須を外すときは、利用者に理由を示して了承を得る。
-- 規則は、道具が機械で検査できる範囲に限る。検査されない規則は守られなくなる。末尾に〔機械〕〔目視〕で確認方法を示す。
-- 次はここに重ねて書かない。そちらに従う。
-  - 最小実装・TDD・完了前の検証（グローバルの CLAUDE.md）
-  - テスト（`~\.claude\rules\python-testing.md`）
-  - venv・プラグインの終了コード・専用環境・依存の固定（`~\.claude\rules\python-venv.md`）
-- 既存のコードには、新規と変更したファイルから適用する。一括で直さない。既存のファイルは、変更した行が新たな違反を作らなければよい。
+- 次は、ここに重ねて書かない。
+  - テスト: `~\.claude\rules\python-testing.md`
+  - venv・終了コード・依存の固定: `~\.claude\rules\python-venv.md`
+- 既存のコードには、新規と変更したファイルから適用する。一括で直さない。
 
 ## 1. 道具
 
 ### 1-1. ruff で lint と整形をそろえる（必須）
 
-- **規則**: `ruff check` と `ruff format --check` が通ること。設定は `pyproject.toml` に 1 か所だけ置き、次を既定とする。ルールを外す（`ignore`）ときは、理由をコメントに書く。ruff は `requirements-dev.txt` に `==` で固定する。
+- **規則**: `ruff check` と `ruff format --check` が通ること。設定は `pyproject.toml` に 1 か所だけ置く。
+- ルールを外す（`ignore`）ときは、理由をコメントに書く。
+- **設定**: 次を既定とする。
 
 ```toml
-[tool.ruff]
-line-length = 88  # ruff format の既定。PEP 8 は 79 桁（合意があれば 99 桁まで）
-
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "N", "B", "UP", "SIM", "S", "PT", "PTH", "BLE"]
 extend-select = ["PLW1514"]  # open の encoding 省略（preview のルール）
 preview = true
-explicit-preview-rules = true  # preview のルールは、コードを指定したものだけ有効にする
+explicit-preview-rules = true  # コードを指定した preview のルールだけ有効にする
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S106", "S108", "S603", "S607"]  # テストは assert・偽の秘密・一時パス・subprocess を使う
-
-[tool.ruff.lint.pydocstyle]
-convention = "pep257"  # 5-3 の確認用（D は select に足さない）
+"tests/**" = ["S101", "S105", "S106", "S108", "S603", "S607"]
 ```
 
-- **理由**: 書き方の議論を道具に任せる。`flake8`・`isort`・`black` は ruff が代替し、`bandit` の主な検査は `S` が代替するので、別に入れない。設定は ruff 0.17 で確認した。〔機械: `ruff check` と `ruff format --check`〕
+- **理由**: 書き方の議論を道具に任せる。〔機械: `ruff check` と `ruff format --check`〕
 
-### 1-2. 依存の脆弱性を `pip-audit` で確かめる（推奨）
+### 1-2. 対象の Python の版を書く（必須）
 
-- **規則**: `requirements.txt` と `requirements-dev.txt` に対して `pip-audit -r <ファイル>` を実行し、既知の脆弱性がないことを確かめる。
-- **理由**: 依存を `==` で固定している（python-venv.md の 2-2）ので、固定した版そのものの脆弱性を機械で確かめる必要がある。〔機械〕
-
-### 1-3. 型は pyright で確かめる（推奨）
-
-- **規則**: `pyright` が通ること。新規と変更したファイルから始める。型ヒントの書き方は 4-2。
-- **理由**: 呼び出し側の誤りを、実行前に見つける。〔機械: `pyright`〕
-
-### 1-4. CI で実行する（推奨）
-
-- **規則**: GitHub Actions で `ruff`・`pytest`・`pip-audit` を push のたびに実行する。サポートする Python の版（`requires-python` の下限と最新）の行列で実行する。Windows 専用のコードは、`windows-latest` で実行する。
-- **理由**: ローカルでの実行は人が忘れる。版の違いによる失敗は、行列でしか見つからない。〔機械: `.github/workflows/` の存在。行列は目視〕
-
-### 1-5. 対象の Python の版を書く（必須）
-
-- **規則**: `pyproject.toml` の `[project]` に `requires-python` を書く（PEP 621）。構文と標準ライブラリは、その下限の版が許す範囲で使う。`target-version` は別に書かない（ruff は `requires-python` から推定する）。
-- **理由**: 版が不明だと、`UP` の書き換えが、動かない版のコードを作る。〔機械: `requires-python` の存在〕
+- **規則**: `pyproject.toml` に `requires-python` を書く（PEP 621）。
+- **理由**: ruff の `UP` が、`requires-python` から書き換え先の版を決める。〔機械: `requires-python` の存在〕
 
 ## 2. Windows での書き方
 
 ### 2-1. ファイルの文字コードを明示する（必須）
 
-- **規則**: テキストの読み書きは `encoding="utf-8"` を明示する（`open`・`read_text`・`write_text`）。標準出力は、必要なら `PYTHONUTF8=1` か `reconfigure(encoding="utf-8")` で UTF-8 にそろえる。
-- **理由**: Windows の既定の文字コード（cp932）に依存すると、日本語の読み書きが環境によって変わる。〔機械: ruff の `PLW1514`（1-1 の設定）〕
+- **規則**: テキストの読み書きは `encoding="utf-8"` を明示する。
+- **理由**: Windows の既定（cp932）に依存すると、日本語の読み書きが環境で変わる。〔機械: ruff の `PLW1514`〕
 
-### 2-2. パスは `pathlib` で扱う（必須）
+### 2-2. 改行は LF に固定する（必須）
 
-- **規則**: パスの結合・分解は `pathlib.Path` で行い、`os.path` や文字列の連結を使わない。区切り文字を直接書かない。
-- **理由**: 区切り文字（`\` と `/`）の混在や、空白・日本語を含むパスで壊れるのを防ぐ。〔機械: ruff の `PTH`〕
+- **規則**: リポジトリに `.gitattributes`（`* text=auto eol=lf`）を置く。
+- **理由**: CRLF が混ざると、差分が全行になる。〔機械: `git diff --check`・`.gitattributes` の存在〕
 
-### 2-3. 正規表現とパスは raw 文字列で書く（必須）
+## 3. チェックリスト
 
-- **規則**: 正規表現と、バックスラッシュを含む文字列は `r"…"` で書く。
-- **理由**: `"\p"` のような書き方は、警告になったり、意図と違う文字になったりする。〔機械: ruff の `W605`（`\d`・`\p` のような無効なエスケープのみ）。`\n`・`\t` と解釈されてしまうパスは目視〕
-
-### 2-4. 改行は LF に固定する（必須）
-
-- **規則**: リポジトリに `.gitattributes`（`* text=auto eol=lf`）を置く。ファイルを書くときに CRLF を入れない。
-- **理由**: Windows の編集で CRLF が混ざると、差分が全行になり、レビューできなくなる。〔機械: `git diff --check`・`.gitattributes` の存在〕
-
-## 3. 安全
-
-### 3-1. 外部コマンドは `shell=False` で、引数を配列で渡す（必須）
-
-- **規則**: `subprocess` は `shell=True` を使わない。引数は配列で渡し、文字列に連結しない。`check` か戻り値の確認を省かない。
-- **理由**: 空白・特殊文字を含む入力による、意図しないコマンド実行を防ぐ。〔機械: ruff の `S602`（`shell=True`）。`S603`・`S607`（部分パスの実行ファイル）は、理由をコメントに書けば `ignore` してよい。`check` や戻り値の確認、引数の連結は目視〕
-
-### 3-2. 例外は握りつぶさない（必須）
-
-- **規則**: 裸の `except:`、`except Exception: pass`、握りつぶす広い `except` を書かない。捕まえる例外型を具体的にし、捕まえた後は報告するか、再送出する。
-- **理由**: 失敗を隠すと、原因の特定が遅れる。〔機械: ruff の `E722`・`BLE001`・`S110`〕
-
-### 3-3. 外部からの入力は検証する（必須）
-
-- **規則**: ファイル・引数・環境変数・ネットワークから来る値は、使う前に型・範囲・形式を検証する。信頼できない文字列で `eval`・`exec`・`pickle.load` を使わない。
-- **理由**: 入力の誤りを、境界で止める。〔機械: ruff の `S102`（exec）・`S307`（eval）・`S301`（pickle）。検証の妥当性は目視〕
-
-### 3-4. 秘密情報を書かない（必須）
-
-- コードに書いた固定の秘密（トークン・パスワード）は、ruff の `S105`・`S106` で検出する。〔機械〕
-
-## 4. 構造
-
-### 4-1. 可変のデフォルト引数を使わない（必須）
-
-- **規則**: デフォルト引数に `[]`・`{}`・`set()` の可変の値を書かない。`None` を使い、関数の中で作る。
-- **理由**: 呼び出しの間で値が共有され、後から壊れる。〔機械: ruff の `B006`〕
-
-### 4-2. 公開関数に型ヒントを付ける（推奨）
-
-- **規則**: モジュールの外から呼ばれる関数の引数と戻り値に、型ヒントを付ける（戻り値がないときは `-> None`）。`X | None`（PEP 604）・`list[str]`（PEP 585）の書き方を使う（`requires-python` が許す版から）。型ヒントの基本は PEP 484/526。
-- **理由**: 呼び出し側の誤りを見つけやすくし、読む人が仕様を推測しなくてよくする。〔機械: `pyright`。ruff の `ANN` でも検出できる〕
-
-### 4-3. 終了コードは python-venv.md の 2-4 に従う（必須。プラグインの入口スクリプトのみ）
-
-- 0 成功、1 実行時のエラー、2 引数・設定のエラー、3 専用環境が使えない。〔目視〕
-
-## 5. 標準的な書き方（PEP 8・257）
-
-### 5-1. 名前の付け方（必須）
-
-- **規則**: 関数・変数・引数は `lower_snake_case`、クラスは `CapWords`、定数は `UPPER_SNAKE_CASE` で書く（PEP 8）。
-- **理由**: 名前の形で種類が分かり、読む人が迷わない。〔機械: ruff の `N`（関数・引数・クラス）。定数は目視〕
-
-### 5-2. import の置き方（必須）
-
-- **規則**: `import` はファイルの先頭に置く。標準ライブラリ、サードパーティ、自分のコードの順にグループ分けし、グループの間に空行を入れる（PEP 8）。
-- **理由**: 依存が一目で分かる。〔機械: ruff の `I`〕
-
-### 5-3. 公開するものに docstring を付ける（推奨）
-
-- **規則**: 公開するモジュール・クラス・関数・メソッドに docstring を付ける（PEP 257）。1 行目は要約を 1 行で書き、詳細は空行を空けて書く。新規と変更したファイルから始める。
-- **理由**: コードを読まずに、使い方を知れるようにする。`D` は `select` に足さない（足すと必須になる）。〔機械: `ruff check --select D <対象>`（`convention` は 1-1 の設定）〕
-
-### 5-4. スクリプトの入口を分ける（推奨）
-
-- **規則**: スクリプトとして実行するファイルは、処理を関数にまとめ、`if __name__ == "__main__":` から呼ぶ。
-- **理由**: import しただけで処理が走るのを防ぎ、テストから呼べるようにする。〔目視〕
-
-### 5-5. 診断の出力は `logging` で出す（推奨）
-
-- **規則**: ライブラリとして使われるコードの診断出力は、`print` ではなく `logging` で出す。コマンドの利用者向けの出力は `print` でよい。
-- **理由**: 呼び出し側が、出力の量と宛先を決められる。〔目視。ruff の `T20` で `print` を一覧できる〕
-
-### 5-6. 後始末が要るものは `with` で扱う（必須）
-
-- **規則**: ファイルやロックのように、後始末が要るものは `with` で扱う。
-- **理由**: 例外が起きても、閉じ忘れない。〔機械: ruff の `SIM115`（ファイルのみ）。ロックは目視〕
-
-## 6. チェックリスト
-
-### 必須
-- [ ] 1-1 `ruff check` と `ruff format --check` が通る（設定は 1 か所、`requirements-dev.txt` に固定）〔機械〕
-- [ ] 1-5 `requires-python` を書いている〔機械〕
+- [ ] 1-1 `ruff check` と `ruff format --check` が通る〔機械〕
+- [ ] 1-2 `requires-python` を書いている〔機械〕
 - [ ] 2-1 `encoding="utf-8"` を明示している〔機械〕
-- [ ] 2-2 パスは `pathlib`〔機械〕
-- [ ] 2-3 正規表現・パスは raw 文字列〔機械〕
-- [ ] 2-4 改行は LF、`.gitattributes` がある〔機械〕
-- [ ] 3-1 `subprocess` は `shell=False`、引数は配列〔機械〕
-- [ ] 3-2 例外を握りつぶしていない〔機械〕
-- [ ] 3-3 外部からの入力を検証している〔目視〕
-- [ ] 3-4 秘密情報を書いていない〔機械〕
-- [ ] 4-1 可変のデフォルト引数がない〔機械〕
-- [ ] 4-3 終了コードが A6 に従う（入口スクリプトのみ）〔目視〕
-- [ ] 5-1 名前が PEP 8 に従う〔機械・目視〕
-- [ ] 5-2 import が先頭で、グループ分けされている〔機械〕
-- [ ] 5-6 後始末が要るものは `with`〔機械〕
-
-### 推奨
-- [ ] 1-2 `pip-audit` で脆弱性がない〔機械〕
-- [ ] 1-3 `pyright` が通る〔機械〕
-- [ ] 1-4 CI で `ruff`・`pytest`・`pip-audit` を、版の行列で実行している〔機械・目視〕
-- [ ] 4-2 公開関数に型ヒントがある〔機械〕
-- [ ] 5-3 公開するものに docstring がある〔機械〕
-- [ ] 5-4 スクリプトの入口が `__main__` から呼ばれる〔目視〕
-- [ ] 5-5 診断の出力は `logging`〔目視〕
+- [ ] 2-2 `.gitattributes` があり、`git diff --check` が通る〔機械〕
 
 ## 出典
 
-- PEP 8: <https://peps.python.org/pep-0008/>（命名、import、行の長さ）
-- PEP 257: <https://peps.python.org/pep-0257/>（docstring）
-- PEP 484: <https://peps.python.org/pep-0484/>、PEP 526: <https://peps.python.org/pep-0526/>、PEP 585: <https://peps.python.org/pep-0585/>、PEP 604: <https://peps.python.org/pep-0604/>（型）
-- `pyproject.toml` の仕様（`requires-python`）: <https://packaging.python.org/en/latest/specifications/pyproject-toml/>
+- PEP 8: <https://peps.python.org/pep-0008/>
+- PEP 257: <https://peps.python.org/pep-0257/>
+- PEP 484: <https://peps.python.org/pep-0484/>
+- PEP 621: <https://peps.python.org/pep-0621/>
 - ruff の設定: <https://docs.astral.sh/ruff/settings/>
