@@ -76,4 +76,4 @@ Claude Code の Hook（`hooks/git_flow.py`）が守らせる、GitHub Flow の�
 
 ## リリースするとき
 
-`gh pr merge` の前に、Claude がユーザーへ「リリースする（提案する版）／しない」を聞き、`git_flow.py allow-merge <セッション ID> <版 または skip>` を実行する。この記録は、1回のマージで消える。マージのあと、Claude が `git tag`、`git push origin <版>`、`gh release create <版> --generate-notes` を実行する（各コマンドは、`permissions.ask` の確認を通る）。
+`gh pr merge` の前に、Claude がユーザーへ「リリースする（提案する版）／しない」を聞き、`git_flow.py allow-merge <セッション ID> <版 または skip>` を実行する。この記録は、1回のマージで消える。マージのあと、Claude が `git tag`、`git push origin <版>`、`gh release create <版> --generate-notes` を実行する（各コマンドは、`permissions.ask` の対象外である。既定ブランチへの push と強制 push は、Hook が拒否する）。

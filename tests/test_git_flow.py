@@ -630,7 +630,7 @@ def test_settings_新しいhookが登録されている(settings):
 
 def test_settings_hookのコマンドはすべてpy_python3_pythonの順に試す形(settings):
     commands = all_hook_commands(settings)
-    assert len(commands) == 6
+    assert len(commands) == 4  # readme_guard の 2 件を外した（SPEC A-6）
     for c in commands:
         m = re.fullmatch(
             r'py (?P<a>"[^"]+"[^|]*?) 2>/dev/null \|\| python3 (?P=a) 2>/dev/null '
@@ -713,14 +713,14 @@ def test_autocrlfが有効な環境でcloneしても_gitattributesがあれば�
     assert cloned_bytes(make_source("attr", True), "attr-clone") == b"x\ny\n"
 
 
-def test_settings_permissions_askにgh_release_createがあり件数がreadmeと一致する(settings):
+def test_settings_permissions_askの件数がreadmeと一致する(settings):
+    # ask は修復できない破壊的コマンドだけ（SPEC A-1）。push・tag・merge・release は修復できるため外した
     ask = settings["permissions"]["ask"]
-    assert "Bash(gh release create *)" in ask
     assert "Bash(git commit *)" not in ask  # ローカルで元に戻せる。main での commit は Hook が拒否する
     assert "Bash(gh pr create *)" not in ask  # クローズで元に戻せる
-    assert len(ask) == 9
+    assert len(ask) == 11
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "| `permissions.ask` | 9 件 |" in readme
+    assert "| `permissions.ask` | 11 件 |" in readme
 
 
 def test_uncommitted_warnは削除され参照が残っていない():

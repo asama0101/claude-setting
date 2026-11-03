@@ -6,9 +6,9 @@ Claude Code を Windows で使う人が、作業ルール、git 操作の確認�
 ## 機能
 
 - 作業の進め方を、規則（`CLAUDE.md`、`rules/`、`docs/`）で決める。Claude Code が、実装の前に計画を出し、変更をサブエージェント（別の文脈で作業する Claude）のレビューにかけ、危ない操作の前に確認する。
-- git の push・タグ作成と、PR（プルリクエスト）のマージ（`gh pr merge`）、GitHub Release の作成（`gh release create`）の前に、確認を必ず出す。auto mode（許可の確認を自動で判断するモード）でも出る。
+- 未コミット変更の破棄やファイルの削除など、修復できない破壊的コマンド（`git reset --hard`・`git clean`・`rm -rf` など）の前に、確認を必ず出す。auto mode（許可の確認を自動で判断するモード）でも出る。
 - ステータスラインに、モデル、フォルダ、ブランチ、コンテキスト（Claude が一度に扱える量）の使用率を出す。いまの状態を、画面の下端で確かめられる。
-- README の更新漏れと、Git/GitHub のフロー（作業ブランチ → コミット → push → PR → squash マージ → タグ・リリース）を、hook（セッションの開始・ツールの実行・応答の終了の節目で自動実行されるコマンド）が知らせ、守らせる。フローの詳細は [docs/git-flow.md](docs/git-flow.md) にある。
+- Git/GitHub のフロー（作業ブランチ → コミット → push → PR → squash マージ → タグ・リリース）を、hook（セッションの開始・ツールの実行・応答の終了の節目で自動実行されるコマンド）が知らせ、守らせる。フローの詳細は [docs/git-flow.md](docs/git-flow.md) にある。
 - コードの変更を最小にするスキル `ponytail`（`skills/`）が使える。
 
 ## 前提条件
@@ -109,9 +109,9 @@ foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','docs','rules
 | `permissions.defaultMode` | `auto` | auto mode で起動する。 |
 | `skipAutoPermissionPrompt` | `true` | auto mode の確認画面を出さない。 |
 | `permissions.disableBypassPermissionsMode` | `disable` | 権限確認を省略するモードを使えなくする。 |
-| `permissions.allow` | 11 件 | 確認なしで実行するコマンド。 |
-| `permissions.deny` | 56 件 | 読み書きを禁じるパスと、禁じるコマンド。 |
-| `permissions.ask` | 9 件 | 確認を必ず出すコマンド。 |
+| `permissions.allow` | 16 件 | 確認なしで実行するコマンド。 |
+| `permissions.deny` | 68 件 | 読み書きを禁じるパスと、禁じるコマンド。 |
+| `permissions.ask` | 11 件 | 確認を必ず出すコマンド。 |
 | `attribution.sessionUrl` | `false` | コミットと PR に、セッションのリンクを付けない。 |
 | `remoteControlAtStartup` | `true` | 起動時に Remote Control を有効にする。 |
 | `model` | `sonnet` | 既定のモデル。 |
@@ -120,8 +120,8 @@ foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','docs','rules
 | `tui` | `fullscreen` | 画面の表示方式。 |
 
 - `permissions.allow` と `permissions.deny` の中身は、`settings.json` で確認する。`deny` は、`.env`・`.ssh`・認証情報のファイルを守る。プロジェクトの `.env.example` や `.npmrc` の編集も、拒否される。
-- `permissions.ask` は、`git push`・`git tag`・`gh pr merge`・`gh release create`・`git reset --hard`・`git clean`・`git checkout --`・`git restore`・`git checkout .` の 9 件である。`git commit` と `gh pr create` は、確認の対象外である（`main` 上のコミットは Hook が拒否する）。auto mode でも確認が出る。
-- `env` の `CLAUDE_CODE_USE_POWERSHELL_TOOL` を `0` にして、PowerShell ツール（PowerShell でコマンドを実行する Claude Code のツール）を無効にしている。hook と `permissions.ask` は Bash ツールだけを対象にするので、PowerShell ツールが有効だと、これらを通らずに `git push` などが実行される。Git Bash がある Windows では、`permissions.deny` に Bash のルール（`Bash(sudo *)`）があるだけでも PowerShell ツールは無効になるが、ルールを変えると有効に戻るので、明示的に無効にしてある。
+- `permissions.ask` は、修復できない破壊的コマンドの 11 件である: `git reset --hard`・`git clean`・`git checkout --`・`git restore`・`git checkout .`・`rm -r`・`rm -rf`・`rm -fr`・`git switch --discard-changes`・`git switch -f`・`git switch --force`。`git push`・`git tag`・`gh pr merge`・`gh release create`・`git commit`・`gh pr create` は、修復できるので、確認の対象外である（`main` 上のコミットと、強制 push は Hook が拒否する）。auto mode でも確認が出る。
+- `env` の `CLAUDE_CODE_USE_POWERSHELL_TOOL` を `0` にして、PowerShell ツール（PowerShell でコマンドを実行する Claude Code のツール）を無効にしている。hook と `permissions.ask` は Bash ツールだけを対象にするので、PowerShell ツールが有効だと、これらを通らずに `git reset --hard` などが実行される。Git Bash がある Windows では、`permissions.deny` に Bash のルール（`Bash(sudo *)`）があるだけでも PowerShell ツールは無効になるが、ルールを変えると有効に戻るので、明示的に無効にしてある。
 - `git restore --staged` にも確認が出る。`git checkout .` は完全一致なので、`git checkout ./dir` や `git checkout HEAD -- f` は対象外である。
 - `attribution.sessionUrl` を `false` にしても、`Co-Authored-By`（コミットに付く共著者の行）と PR の定型文は、既定のまま付く。
 - `remoteControlAtStartup` が `true` だと、Remote Control（ほかの端末から、実行中のセッションを見たり操作したりする機能）が有効になる。不要なら `false` にする。
@@ -141,7 +141,7 @@ Python Launcher が入っていない。Python の公式インストーラーで
 
 hook のスクリプトが見つからない。次の 2 点を確認する。
 
-- `Test-Path "$HOME\.claude\hooks\readme_guard.py"` が `True` になること。`False` なら、手順 2 をやり直す。
+- `Test-Path "$HOME\.claude\hooks\git_flow.py"` が `True` になること。`False` なら、手順 2 をやり直す。
 - Git Bash で `echo $HOME` を実行し、`/c/Users/<ユーザー名>` の形になっていること。環境変数 `HOME` を別の場所に変えていると、`~\.claude` を指さなくなる。
 
 ## ライセンス
