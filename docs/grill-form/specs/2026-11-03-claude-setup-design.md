@@ -142,6 +142,17 @@ README の件数など、E と A と B の変更で事実と合わなくなる�
 **F-1 frontend-design が有効なとき、Artifact のデザインに影響するかを確認する。** 比較する条件: 「有効」と、「無効」（`--settings` の `enabledPlugins` で false）。本文の読み比べと、2 条件の実測（同じ依頼「Artifact使ってデザインを見せて」）。実測は、Artifact が使える対話セッションで行う（`claude -p` では使えない）。
 - 判断基準: Skill 呼び出し（frontend-design・artifact-design）の有無と、出力 HTML の `font-family` と色に差がある場合を、「影響あり」とする。
 - 受入条件: 2 条件の結果の表と、読み比べの所見を、チャットで報告する〔操作〕。できなければ「未検証」と理由。
+- 結果（2026-11-03、依頼「Artifact使ってデザインを見せて」、各条件 1 回）: **影響なしと見られる**（`frontend-design` は、有効でも呼ばれなかった）。
+
+  | 項目 | 有効 | 無効 |
+  | --- | --- | --- |
+  | 呼んだ Skill（記録で確認） | `artifact-design` 1 回 | なし |
+  | 見出し／本文の書体（申告） | Zen Kaku Gothic New／Noto Sans JP | Zen Kaku Gothic New／BIZ UDPGothic |
+  | 背景・文字・強調（ライト、申告） | #ffffff・#14233b・#1f5fd1 | #EEF2F5・#16222D・#0A6C8F |
+
+  - 差（本文の書体、色、`artifact-design` の呼び出し）は、判断基準では「影響あり」に当たる。ただし有効側でも `frontend-design` は呼ばれていないので、原因は `frontend-design` ではなく、`artifact-design` を Skill として呼んだか `quickstart` の指針だけに従ったかの違いと、実行のばらつきと見る。
+  - このセッション（`frontend-design` 有効）の Artifact の公開 26 回でも、`frontend-design` の呼び出しは 0 回（記録で確認）。
+  - 限界: 各条件 1 回。題材が同じかは未確認。書体と色は申告値で、HTML では未確認。`frontend-design` を明示して呼ぶ依頼は未測定。
 
 ## 〔操作〕の確認チェックリスト
 
