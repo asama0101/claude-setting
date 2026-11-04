@@ -16,12 +16,10 @@ ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "hooks" / "git_flow.py"
 
 FAKE_GH = '''\
-import json, os, sys
+import os, sys
 args = sys.argv[1:]
 if args[:2] == ["pr", "list"]:
     print(os.environ.get("FAKE_GH_PR_LIST", "[]"))
-elif args[:2] == ["pr", "view"]:
-    print(json.dumps({"title": os.environ.get("FAKE_GH_PR_TITLE", "")}))
 else:
     sys.exit(1)
 '''

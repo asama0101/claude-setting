@@ -2,14 +2,12 @@
 
 使い方（settings.json の hooks から呼ぶ。入力は stdin の JSON）:
   git_flow.py session-start  SessionStart 用。ブランチ・未コミット・リモートとの差を知らせる
-  git_flow.py pre-tool       PreToolUse 用。ブランチ確認、フロー違反、gh pr merge、タグ名を検査する
-  git_flow.py post-tool      PostToolUse 用。編集の記録と、マージ後のタグ・リリースの指示
+  git_flow.py pre-tool       PreToolUse 用。ブランチ確認、フロー違反、gh pr merge（常に拒否）、タグ名を検査する
+  git_flow.py post-tool      PostToolUse 用。編集の記録
   git_flow.py stop           Stop 用。編集があれば、コミット・push・PR を促す
 
 Claude が Bash で実行するコマンド（Hook の拒否理由が、引数ごと示す）:
-  git_flow.py allow-main <session_id>                 このセッションだけ、ブランチ確認と main 直コミットの拒否を外す
-  git_flow.py allow-merge <session_id> <vX.Y.Z|skip>  次の gh pr merge の許可と、リリースする版を記録する
-                                                      （skip はリリースを作らない）
+  git_flow.py allow-main <session_id>  このセッションだけ、ブランチ確認と main 直コミットの拒否を外す
 
 Git 管理外のフォルダでは何もしない。Hook の失敗で作業を止めないため、
 予期しない例外は標準エラー出力に1行書いて、終了コード 0 で終わる。
@@ -169,21 +167,6 @@ def commit_messages(d: str, ref: str, since: str | None) -> list[str]:
     return [m.strip() for m in out.split("\x00") if m.strip()]
 
 
-def pr_title(d: str, args: list[str]) -> str | None:
-    """マージする PR のタイトル。gh がない・取得に失敗したら None。"""
-    gh = shutil.which("gh")
-    if not gh:
-        return None
-    target = [a for a in args[2:] if not a.startswith("-")][:1]
-    r = run([gh, "pr", "view", *target, "--json", "title"], d)
-    if not r or r[0] != 0:
-        return None
-    try:
-        return json.loads(r[1]).get("title")
-    except ValueError:
-        return None
-
-
 # --- 版の決め方 -------------------------------------------------------------
 
 
@@ -311,7 +294,18 @@ def parse_git(words: list[str]) -> tuple[str, list[str], str | None] | None:
 
 
 def is_gh_pr_merge(words: list[str]) -> bool:
-    return len(words) >= 3 and Path(words[0]).name.lower() in ("gh", "gh.exe") and words[1:3] == ["pr", "merge"]
+    """`gh pr merge ...` か。フラグは位置に関係なく読み飛ばす（-R・--repo は値も飛ばす）。"""
+    if not words or Path(words[0]).name.lower() not in ("gh", "gh.exe"):
+        return False
+    positional, skip = [], False
+    for w in words[1:]:
+        if skip:
+            skip = False
+        elif w in ("-R", "--repo"):
+            skip = True
+        elif not w.startswith("-"):
+            positional.append(w)
+    return positional[:2] == ["pr", "merge"]
 
 
 def analyze_push(args: list[str], branch: str | None, default: str) -> tuple[bool, bool]:
@@ -355,26 +349,6 @@ def branch_question(sid: str | None, default: str, header: str) -> str:
         "`git switch -c <名前>` を実行し、元の操作をやり直す。\n"
         f"3. 「切らない」なら `{helper_command('allow-main', str(sid))}` を Bash ツールで実行し、元の操作をやり直す"
         f"（このセッションの間、この確認と、{default} への commit・push の拒否が外れる）。"
-    )
-
-
-def merge_reason(d: str, sid: str | None, args: list[str], default: str) -> str:
-    ref = release_ref(d, default)
-    latest = latest_tag(d, ref)
-    messages = commit_messages(d, ref, latest)
-    title = pr_title(d, args)
-    version = next_version(latest, messages + ([title] if title else []))
-    subjects = [m.splitlines()[0] for m in messages][:20]
-    return (
-        "gh pr merge の前に、バージョンとリリースの確認が要ります。\n"
-        f"最新タグ: {latest or 'なし'}\n"
-        f"{ref} のタグ以降のコミット件名（最大20件）:\n" + "".join(f"- {s}\n" for s in subjects) +
-        f"マージする PR のタイトル: {title or '取得できず'}\n"
-        f"提案する版: {version}（reference/git-flow.md の「バージョン表記の定義」による。skip はリリースを作らない）\n"
-        "次の順で進めてください。\n"
-        f"1. AskUserQuestion でユーザーに「リリースする（既定: {version}）／しない」を聞く。\n"
-        f"2. `{helper_command('allow-merge', str(sid), '<版 または skip>')}` を Bash ツールで実行する。\n"
-        "3. `gh pr merge --squash`（`--auto` なし）を実行する。"
     )
 
 
@@ -486,7 +460,7 @@ def check_segment(words: list[str], cwd: Path, sid: str | None, state: dict, new
     if not (g or gh_merge) or not is_work_tree(d):
         return None
     if gh_merge:
-        return merge_gate(d, sid, words, state)
+        return merge_gate(d)
     sub, args, _ = g
     branch, default = (None if new_branch else current_branch(d)), default_branch(d)
     ready = bool(default) and has_commits(d) and not state.get("allow_main")
@@ -504,14 +478,12 @@ def check_segment(words: list[str], cwd: Path, sid: str | None, state: dict, new
     return None
 
 
-def merge_gate(d: str, sid: str | None, words: list[str], state: dict) -> str | None:
-    default = default_branch(d)
-    if not is_github(d) or not default:
+def merge_gate(d: str) -> str | None:
+    """GitHub のリモートでは、gh pr merge を常に拒否する。マージはユーザーが行う。"""
+    if not is_github(d) or not default_branch(d):
         return None
-    args = words[1:]
-    if "--auto" in args or not ({"--squash", "-s"} & set(args)):
-        return "gh pr merge は `--squash`（`--auto` なし）で実行してください（1 PR = 1 コミットにします）。"
-    return merge_reason(d, sid, args, default) if state.get("merge_ok") is None else None
+    return ("gh pr merge は拒否します。マージはユーザーが行います（PR の画面、または `! gh pr merge <番号> --squash`）。"
+            "PR の URL をユーザーに伝えて、止まってください。")
 
 
 def pre_tool(data: dict) -> None:
@@ -564,34 +536,12 @@ def post_tool(data: dict) -> None:
             if not words:
                 continue
             g = parse_git(words)
-            if is_gh_pr_merge(words) and state.get("merge_ok") is not None:
-                finish_merge(cwd, sid, state)
-            elif is_file_op(words, g):
+            if is_file_op(words, g):
                 edited = edited or file_op_dir(words, g, cwd) is not None
     if edited and not state.get("edited"):
         state = load_state(sid)
         state["edited"] = True
         save_state(sid, state)
-
-
-def finish_merge(cwd: Path, sid: str | None, state: dict) -> None:
-    version = state.pop("merge_ok")
-    save_state(sid, state)
-    if version == "skip":
-        return
-    d = str(cwd)
-    default = default_branch(d) or "main"
-    text = (
-        f"PR をマージしました。リリースの手順を進めてください（版: {version}）。\n"
-        "1. `gh pr view --json state` で state が MERGED であることを確認する。"
-        "MERGED でなければ、ここで止めてユーザーに報告する。\n"
-        "2. `git fetch origin`\n"
-        f"3. `git tag {version} origin/{default}`\n"
-        f"4. `git push origin {version}`\n"
-        f"5. `gh release create {version} --generate-notes`\n"
-        "各コマンドの確認はユーザーが行う。gh が使えないときは、手順3・4までで止めて報告する。"
-    )
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": text}}))
 
 
 def session_start(data: dict) -> None:
@@ -690,18 +640,7 @@ def cli(sub: str, args: list[str]) -> int:
         save_state(args[0], state)
         print("OK: このセッションでは、ブランチ確認と既定ブランチへの commit・push の拒否を外しました。")
         return 0
-    if sub == "allow-merge" and len(args) == 2:
-        if args[1] != "skip" and not TAG_RE.fullmatch(args[1]):
-            print(f"版 {args[1]} は書式 vMAJOR.MINOR.PATCH（{TAG_PATTERN}）に合いません。"
-                  "skip か、この書式の版を指定してください。", file=sys.stderr)
-            return 2
-        state = load_state(args[0])
-        state["merge_ok"] = args[1]
-        save_state(args[0], state)
-        print(f"OK: 次の gh pr merge --squash を許可しました（版: {args[1]}）。")
-        return 0
-    extra = " <版 または skip>" if sub == "allow-merge" else ""
-    print(f"使い方: git_flow.py {sub} <session_id>{extra}", file=sys.stderr)
+    print(f"使い方: git_flow.py {sub} <session_id>", file=sys.stderr)
     return 2
 
 
@@ -712,7 +651,7 @@ def main(argv: list[str]) -> int:
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8")
     sub = argv[1] if len(argv) > 1 else ""
-    if sub in ("allow-main", "allow-merge"):
+    if sub == "allow-main":
         return cli(sub, argv[2:])
     handler = HOOKS.get(sub)
     if handler is None:

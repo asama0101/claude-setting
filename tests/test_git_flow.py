@@ -420,48 +420,24 @@ def test_force_pushは免除があっても作業ブランチでも拒否する(
     assert denied(hook("pre-tool", bash_in(repo, command))) is not None
 
 
-# --- 受入条件 7・8: gh pr merge ---------------------------------------------
+# --- 受入条件 7: gh pr merge（マージはユーザーが行う） ---------------------------
 
 
-def prepare_release(repo, git, env):
-    git(repo.path, "tag", "v0.1.0")
-    git(repo.path, "commit", "--allow-empty", "-m", "feat: 先行機能")
-    git(repo.path, "push", "origin", "main", "v0.1.0")
-    git(repo.path, "switch", "-c", "feat/x")
-    env["FAKE_GH_PR_TITLE"] = "fix: 直し"
-
-
-def test_記録のないgh_pr_mergeは最新タグと提案する版とallow_mergeを示して拒否する(repo, hook, git, env):
-    prepare_release(repo, git, env)
-    reason = denied(hook("pre-tool", bash_in(repo, "gh pr merge --squash", "sess-7")))
+@pytest.mark.parametrize("command", ["gh pr merge --squash", "gh pr merge 12 --squash", "gh pr merge --merge",
+                                     "gh pr merge", "gh pr merge --squash --auto",
+                                     "gh -R owner/repo pr merge 12 --squash", "gh --repo owner/repo pr merge 12",
+                                     "gh --repo=owner/repo pr merge 12",
+                                     "gh pr -R owner/repo merge 12", "gh pr --repo owner/repo merge 12 --squash"])
+def test_githubのリモートではgh_pr_mergeを常に拒否しユーザーが行うと示す(command, repo, hook):
+    reason = denied(hook("pre-tool", bash_in(repo, command)))
     assert reason is not None
-    for expected in ("v0.1.0", "v0.2.0", "allow-merge sess-7", "feat: 先行機能"):
-        assert expected in reason
+    assert "ユーザーが行います" in reason
 
 
-@pytest.mark.parametrize("command", ["gh pr merge --merge", "gh pr merge", "gh pr merge --squash --auto"])
-def test_squash以外とautoのgh_pr_mergeは記録があっても拒否する(command, repo, hook):
-    hook("allow-merge", args=("s1", "v0.2.0"))
-    assert denied(hook("pre-tool", bash_in(repo, command))) is not None
-
-
-def test_allow_mergeの後のマージは通りマージ後に記録が消える(repo, hook, git, env):
-    prepare_release(repo, git, env)
-    hook("allow-merge", args=("s1", "v0.2.0"))
-    assert hook("pre-tool", bash_in(repo, "gh pr merge 12 --squash")).out == ""
-    post = hook("post-tool", bash_in(repo, "gh pr merge 12 --squash", event="PostToolUse"))
-    context = post.json["hookSpecificOutput"]["additionalContext"]
-    for expected in ("git tag v0.2.0 origin/main", "git push origin v0.2.0",
-                     "gh release create v0.2.0 --generate-notes", "MERGED"):
-        assert expected in context
-    assert denied(hook("pre-tool", bash_in(repo, "gh pr merge 12 --squash"))) is not None
-
-
-def test_skipを選んだマージではタグの指示を出さず記録だけ消す(repo, hook):
-    hook("allow-merge", args=("s1", "skip"))
-    assert hook("pre-tool", bash_in(repo, "gh pr merge --squash")).out == ""
-    assert hook("post-tool", bash_in(repo, "gh pr merge --squash", event="PostToolUse")).out == ""
-    assert denied(hook("pre-tool", bash_in(repo, "gh pr merge --squash"))) is not None
+@pytest.mark.parametrize("command", ["gh pr view 12", "gh -R owner/repo pr view 12", "gh pr list", "gh pr comment 12 --body merge",
+                                     "gh", "gh pr"])
+def test_merge以外のgh_prは拒否しない(command, repo, hook):
+    assert hook("pre-tool", bash_in(repo, command)).out == ""
 
 
 def test_github以外のリモートではgh_pr_mergeを拒否しない(make_repo, hook):
@@ -469,15 +445,7 @@ def test_github以外のリモートではgh_pr_mergeを拒否しない(make_rep
     assert hook("pre-tool", bash_in(repo, "gh pr merge --squash")).out == ""
 
 
-# --- 受入条件 14: 版の書式の検査 ---------------------------------------------
-
-
-@pytest.mark.parametrize(("version", "rc"), [
-    ("v1.2.3", 0), ("v0.1.0", 0), ("skip", 0),
-    ("1.2.3", 2), ("V1.2.3", 2), ("v1.2", 2), ("v01.2.3", 2), ("v1.2.3-rc.1", 2),
-])
-def test_allow_mergeは版の書式を検査する(version, rc, hook):
-    assert hook("allow-merge", args=("s1", version)).rc == rc
+# --- 受入条件 14: タグ名の検査 -----------------------------------------------
 
 
 @pytest.mark.parametrize("command", ["git tag v1.2.3", "git tag -a v1.2.3 -m x", "git tag -l",
