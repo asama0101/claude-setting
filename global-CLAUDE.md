@@ -66,7 +66,6 @@
 ## 作業の前に読むファイル
 | 作業 | 読むファイル（`~\.claude\reference\`） |
 |---|---|
-| 実装・変更、報告 | `principles.md` |
 | レビュー、PR・マージ前の確認 | `review.md` |
 | ユーザーに渡す文章を書く | `writing.md` |
 | スキル・プラグインの作成・変更 | `plugin-rules.md` |
