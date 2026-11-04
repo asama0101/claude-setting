@@ -7,11 +7,12 @@ Hook（`hooks/git_flow.py`）が守らせる GitHub Flow の規則。Git 管理�
 1. main の最新を取り込み、作業ブランチを切る。
 2. ファイルを作成・削除・編集する。
 3. Conventional Commits の形式でコミットする（type は英語、説明は日本語）。
+   - 例: `docs: git-flow.md の段階7を直す`
 4. push する。
 5. PR を作る。タイトルも Conventional Commits の形式にする。
 6. レビューを受ける。
 7. ユーザーが `--squash` で main にマージする（1 PR = 1 コミット）。Claude はマージしない。
-8. ユーザーが求めたとき、Claude がタグ（`vMAJOR.MINOR.PATCH`）を打ち、GitHub Release を作る。
+8. マージ済みと分かったとき（ユーザーが伝えたとき、または未リリースの案内を見たとき）、Claude が AskUserQuestion で「リリースする／しない」を聞く。「する」なら、タグ（`vMAJOR.MINOR.PATCH`）を打ち、GitHub Release を作る。
 
 ## ブランチ名
 
@@ -66,10 +67,10 @@ force push は外れない。
 
 ## リリースするとき
 
-ユーザーが PR をマージしたあと、リリースを求められたときに行う。
+マージ済みと分かったときに行う。
 
 1. `gh pr view --json state` で state が MERGED であることを確認する。MERGED でなければ、止めてユーザーに報告する。
-2. AskUserQuestion でユーザーに「リリースする（提案する版）／しない」を聞く。
+2. AskUserQuestion でユーザーに「リリースする（提案する版）／しない」を聞く（版の確認と兼ねる）。
 3. 「する」なら、次を実行する。
    - `git fetch origin`
    - `git tag <版> origin/<既定ブランチ>`
