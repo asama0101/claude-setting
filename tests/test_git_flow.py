@@ -177,6 +177,72 @@ def test_session_start_未リリースの1行(tag, subject, expected, repo, hook
             assert expected in text
 
 
+def merged_branch(repo, git, env, head_matches=True):
+    """push 済みの作業ブランチ feat/x を作り、その PR がマージ済みだと偽の gh に答えさせる。"""
+    git(repo.path, "switch", "-c", "feat/x")
+    git(repo.path, "commit", "--allow-empty", "-m", "feat: x")
+    git(repo.path, "push", "-u", "origin", "feat/x")
+    head = git(repo.path, "rev-parse", "HEAD") if head_matches else "0" * 40
+    env["FAKE_GH_PR_LIST"] = json.dumps([{"number": 12, "headRefOid": head}])
+
+
+def test_session_start_作業ブランチのprがマージ済みなら削除に進めると知らせる(repo, hook, git, env):
+    merged_branch(repo, git, env)
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    for text in start_text(r):
+        assert "PR #12 はマージ済み" in text
+        assert "作業ブランチを削除するとき" in text
+
+
+@pytest.mark.parametrize("case", ["先頭が違う", "PRなし", "既定ブランチ上"])
+def test_session_start_マージ済みの案内を出さない条件(case, repo, hook, git, env):
+    merged_branch(repo, git, env, head_matches=case != "先頭が違う")
+    if case == "PRなし":
+        env["FAKE_GH_PR_LIST"] = "[]"
+    if case == "既定ブランチ上":
+        git(repo.path, "switch", "main")
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    for text in start_text(r):
+        assert "マージ済み" not in text
+
+
+@pytest.mark.parametrize("output", ["{}", '{"a": 1}', "[1]", "not json", '[{"headRefOid": "x"}]', "null"])
+def test_ghの出力が不正でもマージ済みの案内を出さず_他の案内は出す(output, repo, hook, git, env):
+    merged_branch(repo, git, env)
+    env["FAKE_GH_PR_LIST"] = output
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    assert r.err == ""
+    for text in start_text(r):
+        assert "ブランチ: feat/x" in text
+        assert "マージ済み" not in text
+
+
+def test_session_start_numberのない要素は読み飛ばし後ろの一致する要素を使う(repo, hook, git, env):
+    merged_branch(repo, git, env)
+    head = git(repo.path, "rev-parse", "HEAD")
+    env["FAKE_GH_PR_LIST"] = json.dumps([{"headRefOid": head}, {"number": 12, "headRefOid": head}])
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    for text in start_text(r):
+        assert "PR #12 はマージ済み" in text
+
+
+def test_session_start_numberのない一致要素だけなら案内を出さない(repo, hook, git, env):
+    merged_branch(repo, git, env)
+    env["FAKE_GH_PR_LIST"] = json.dumps([{"headRefOid": git(repo.path, "rev-parse", "HEAD")}])
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    assert r.err == ""
+    for text in start_text(r):
+        assert "マージ済み" not in text
+
+
+def test_session_start_github以外のリモートではマージ済みの案内を出さない(make_repo, hook, git, env):
+    repo = make_repo(remote="other")
+    merged_branch(repo, git, env)
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    for text in start_text(r):
+        assert "マージ済み" not in text
+
+
 # --- 受入条件 3・4: ブランチ確認と免除 --------------------------------------
 
 
@@ -420,48 +486,24 @@ def test_force_pushは免除があっても作業ブランチでも拒否する(
     assert denied(hook("pre-tool", bash_in(repo, command))) is not None
 
 
-# --- 受入条件 7・8: gh pr merge ---------------------------------------------
+# --- 受入条件 7: gh pr merge（マージはユーザーが行う） ---------------------------
 
 
-def prepare_release(repo, git, env):
-    git(repo.path, "tag", "v0.1.0")
-    git(repo.path, "commit", "--allow-empty", "-m", "feat: 先行機能")
-    git(repo.path, "push", "origin", "main", "v0.1.0")
-    git(repo.path, "switch", "-c", "feat/x")
-    env["FAKE_GH_PR_TITLE"] = "fix: 直し"
-
-
-def test_記録のないgh_pr_mergeは最新タグと提案する版とallow_mergeを示して拒否する(repo, hook, git, env):
-    prepare_release(repo, git, env)
-    reason = denied(hook("pre-tool", bash_in(repo, "gh pr merge --squash", "sess-7")))
+@pytest.mark.parametrize("command", ["gh pr merge --squash", "gh pr merge 12 --squash", "gh pr merge --merge",
+                                     "gh pr merge", "gh pr merge --squash --auto",
+                                     "gh -R owner/repo pr merge 12 --squash", "gh --repo owner/repo pr merge 12",
+                                     "gh --repo=owner/repo pr merge 12",
+                                     "gh pr -R owner/repo merge 12", "gh pr --repo owner/repo merge 12 --squash"])
+def test_githubのリモートではgh_pr_mergeを常に拒否しユーザーが行うと示す(command, repo, hook):
+    reason = denied(hook("pre-tool", bash_in(repo, command)))
     assert reason is not None
-    for expected in ("v0.1.0", "v0.2.0", "allow-merge sess-7", "feat: 先行機能"):
-        assert expected in reason
+    assert "ユーザーが行います" in reason
 
 
-@pytest.mark.parametrize("command", ["gh pr merge --merge", "gh pr merge", "gh pr merge --squash --auto"])
-def test_squash以外とautoのgh_pr_mergeは記録があっても拒否する(command, repo, hook):
-    hook("allow-merge", args=("s1", "v0.2.0"))
-    assert denied(hook("pre-tool", bash_in(repo, command))) is not None
-
-
-def test_allow_mergeの後のマージは通りマージ後に記録が消える(repo, hook, git, env):
-    prepare_release(repo, git, env)
-    hook("allow-merge", args=("s1", "v0.2.0"))
-    assert hook("pre-tool", bash_in(repo, "gh pr merge 12 --squash")).out == ""
-    post = hook("post-tool", bash_in(repo, "gh pr merge 12 --squash", event="PostToolUse"))
-    context = post.json["hookSpecificOutput"]["additionalContext"]
-    for expected in ("git tag v0.2.0 origin/main", "git push origin v0.2.0",
-                     "gh release create v0.2.0 --generate-notes", "MERGED"):
-        assert expected in context
-    assert denied(hook("pre-tool", bash_in(repo, "gh pr merge 12 --squash"))) is not None
-
-
-def test_skipを選んだマージではタグの指示を出さず記録だけ消す(repo, hook):
-    hook("allow-merge", args=("s1", "skip"))
-    assert hook("pre-tool", bash_in(repo, "gh pr merge --squash")).out == ""
-    assert hook("post-tool", bash_in(repo, "gh pr merge --squash", event="PostToolUse")).out == ""
-    assert denied(hook("pre-tool", bash_in(repo, "gh pr merge --squash"))) is not None
+@pytest.mark.parametrize("command", ["gh pr view 12", "gh -R owner/repo pr view 12", "gh pr list", "gh pr comment 12 --body merge",
+                                     "gh", "gh pr"])
+def test_merge以外のgh_prは拒否しない(command, repo, hook):
+    assert hook("pre-tool", bash_in(repo, command)).out == ""
 
 
 def test_github以外のリモートではgh_pr_mergeを拒否しない(make_repo, hook):
@@ -469,15 +511,7 @@ def test_github以外のリモートではgh_pr_mergeを拒否しない(make_rep
     assert hook("pre-tool", bash_in(repo, "gh pr merge --squash")).out == ""
 
 
-# --- 受入条件 14: 版の書式の検査 ---------------------------------------------
-
-
-@pytest.mark.parametrize(("version", "rc"), [
-    ("v1.2.3", 0), ("v0.1.0", 0), ("skip", 0),
-    ("1.2.3", 2), ("V1.2.3", 2), ("v1.2", 2), ("v01.2.3", 2), ("v1.2.3-rc.1", 2),
-])
-def test_allow_mergeは版の書式を検査する(version, rc, hook):
-    assert hook("allow-merge", args=("s1", version)).rc == rc
+# --- 受入条件 14: タグ名の検査 -----------------------------------------------
 
 
 @pytest.mark.parametrize("command", ["git tag v1.2.3", "git tag -a v1.2.3 -m x", "git tag -l",
@@ -573,6 +607,39 @@ def test_stop_github以外のリモートではpushやprを促さない(make_rep
     git(repo.path, "switch", "-c", "feat/x")
     git(repo.path, "commit", "--allow-empty", "-m", "feat: x")
     mark_edit(hook, repo, "s1")
+    assert stop(hook, repo, "s1").out == ""
+
+
+def test_stop_作業ブランチのprがマージ済みなら編集がなくても削除を促し同じ状態では1回だけ(repo, hook, git, env):
+    merged_branch(repo, git, env)
+    r = stop(hook, repo, "s1")
+    assert r.json["decision"] == "block"
+    assert "マージ済み" in r.json["reason"]
+    assert "#12" in r.json["reason"]
+    assert "git status" in r.json["reason"]  # 削除の前の確認を飛ばさせない
+    assert stop(hook, repo, "s1").out == ""
+
+
+@pytest.mark.parametrize("case", ["先頭が違う", "既定ブランチ上"])
+def test_stop_マージ済みの促しを出さない条件(case, repo, hook, git, env):
+    merged_branch(repo, git, env, head_matches=case != "先頭が違う")
+    if case == "既定ブランチ上":
+        git(repo.path, "switch", "main")
+    assert stop(hook, repo, "s1").out == ""
+
+
+def test_stop_編集あり_未コミットがあればマージ済みよりコミットを先に促す(repo, hook, git, env):
+    merged_branch(repo, git, env)
+    (repo.path / "new.txt").write_text("x", encoding="utf-8")
+    mark_edit(hook, repo, "s1")
+    reason = stop(hook, repo, "s1").json["reason"]
+    assert "コミット" in reason
+    assert "マージ済み" not in reason
+
+
+def test_stop_github以外のリモートではマージ済みの促しを出さない(make_repo, hook, git, env):
+    repo = make_repo(remote="other")
+    merged_branch(repo, git, env)
     assert stop(hook, repo, "s1").out == ""
 
 
@@ -733,8 +800,8 @@ def test_uncommitted_warnは削除され参照が残っていない():
 
 def test_reference_git_flowに必要な内容がある():
     text = (ROOT / "reference" / "git-flow.md").read_text(encoding="utf-8")
-    steps = re.findall(r"^[1-8]\. ", text.split("## 基本フロー")[1].split("##")[0], re.MULTILINE)
-    assert len(steps) == 8
+    steps = re.findall(r"^[1-9]\. ", text.split("## 基本フロー")[1].split("##")[0], re.MULTILINE)
+    assert len(steps) == 9
     for expected in ("## バージョン表記の定義", r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$",
-                     "## 各段階を Hook がどう扱うか", "feat/", "fix/", "docs/", "chore/", "--squash"):
+                     "## 各段階を Hook がどう扱うか", "feat/", "fix/", "docs/", "chore/", "--squash", "git push origin --delete", "git branch -D"):
         assert expected in text, expected
