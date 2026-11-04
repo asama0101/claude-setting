@@ -167,6 +167,25 @@ def commit_messages(d: str, ref: str, since: str | None) -> list[str]:
     return [m.strip() for m in out.split("\x00") if m.strip()]
 
 
+def merged_pr(d: str, branch: str | None, default: str | None) -> int | None:
+    """作業ブランチの PR がマージ済みで、ローカルの先頭が PR の先頭と一致するとき、その PR の番号。
+
+    先頭の一致を条件にするのは、同名ブランチの使い回しと、PR のあとに足した未 push のコミットを消す事故を防ぐため。
+    """
+    gh = shutil.which("gh")
+    if not (gh and branch and default and branch != default and is_github(d)):
+        return None
+    r = run([gh, "pr", "list", "--head", branch, "--state", "merged", "--json", "number,headRefOid"], d)
+    try:
+        prs = json.loads(r[1]) if r and r[0] == 0 else []
+    except ValueError:
+        return None
+    head = ok(d, "rev-parse", "HEAD")
+    if not (head and isinstance(prs, list)):
+        return None
+    return next((p["number"] for p in prs if isinstance(p, dict) and p.get("headRefOid") == head and "number" in p), None)
+
+
 # --- 版の決め方 -------------------------------------------------------------
 
 
@@ -562,6 +581,9 @@ def session_start(data: dict) -> None:
         parts.append("リモート差: " + text)
     lines = [" / ".join(parts)]
     default = default_branch(d)
+    number = merged_pr(d, current_branch(d), default)
+    if number:
+        lines.append(f"作業ブランチの PR #{number} はマージ済み。reference/git-flow.md の「作業ブランチを削除するとき」に進める")
     if is_github(d) and default:
         ref = release_ref(d, default)
         latest = latest_tag(d, ref)
@@ -603,6 +625,9 @@ STAGE_TEXT = {
     "push": "コミット済みで、まだ push していない変更があります。ユーザーに push するかを確認してください。",
     "pr": "push 済みのブランチに、PR がありません。ユーザーに PR を作るかを確認してください"
           "（タイトルは Conventional Commits の形式）。",
+    "delete": "作業ブランチの PR はマージ済みです。\n{files}\n"
+              "reference/git-flow.md の「作業ブランチを削除するとき」の手順に従ってください。"
+              "先に state・headRefOid・git status を確認し、満たさなければ削除せずに報告してください。",
 }
 
 
@@ -612,9 +637,12 @@ def stop(data: dict) -> None:
     sid = data.get("session_id")
     state = load_state(sid)
     d = str(data.get("cwd") or Path.cwd())
-    if not state.get("edited") or not is_work_tree(d):
+    if not is_work_tree(d):
         return
-    stage = pending_stage(d, bool(state.get("allow_main")))
+    stage = pending_stage(d, bool(state.get("allow_main"))) if state.get("edited") else None
+    if stage is None:
+        number = merged_pr(d, current_branch(d), default_branch(d))
+        stage = ("delete", [f"PR #{number}"]) if number else None
     if stage is None:
         return
     name, lines = stage

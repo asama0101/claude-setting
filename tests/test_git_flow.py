@@ -177,6 +177,72 @@ def test_session_start_未リリースの1行(tag, subject, expected, repo, hook
             assert expected in text
 
 
+def merged_branch(repo, git, env, head_matches=True):
+    """push 済みの作業ブランチ feat/x を作り、その PR がマージ済みだと偽の gh に答えさせる。"""
+    git(repo.path, "switch", "-c", "feat/x")
+    git(repo.path, "commit", "--allow-empty", "-m", "feat: x")
+    git(repo.path, "push", "-u", "origin", "feat/x")
+    head = git(repo.path, "rev-parse", "HEAD") if head_matches else "0" * 40
+    env["FAKE_GH_PR_LIST"] = json.dumps([{"number": 12, "headRefOid": head}])
+
+
+def test_session_start_作業ブランチのprがマージ済みなら削除に進めると知らせる(repo, hook, git, env):
+    merged_branch(repo, git, env)
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    for text in start_text(r):
+        assert "PR #12 はマージ済み" in text
+        assert "作業ブランチを削除するとき" in text
+
+
+@pytest.mark.parametrize("case", ["先頭が違う", "PRなし", "既定ブランチ上"])
+def test_session_start_マージ済みの案内を出さない条件(case, repo, hook, git, env):
+    merged_branch(repo, git, env, head_matches=case != "先頭が違う")
+    if case == "PRなし":
+        env["FAKE_GH_PR_LIST"] = "[]"
+    if case == "既定ブランチ上":
+        git(repo.path, "switch", "main")
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    for text in start_text(r):
+        assert "マージ済み" not in text
+
+
+@pytest.mark.parametrize("output", ["{}", '{"a": 1}', "[1]", "not json", '[{"headRefOid": "x"}]', "null"])
+def test_ghの出力が不正でもマージ済みの案内を出さず_他の案内は出す(output, repo, hook, git, env):
+    merged_branch(repo, git, env)
+    env["FAKE_GH_PR_LIST"] = output
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    assert r.err == ""
+    for text in start_text(r):
+        assert "ブランチ: feat/x" in text
+        assert "マージ済み" not in text
+
+
+def test_session_start_numberのない要素は読み飛ばし後ろの一致する要素を使う(repo, hook, git, env):
+    merged_branch(repo, git, env)
+    head = git(repo.path, "rev-parse", "HEAD")
+    env["FAKE_GH_PR_LIST"] = json.dumps([{"headRefOid": head}, {"number": 12, "headRefOid": head}])
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    for text in start_text(r):
+        assert "PR #12 はマージ済み" in text
+
+
+def test_session_start_numberのない一致要素だけなら案内を出さない(repo, hook, git, env):
+    merged_branch(repo, git, env)
+    env["FAKE_GH_PR_LIST"] = json.dumps([{"headRefOid": git(repo.path, "rev-parse", "HEAD")}])
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    assert r.err == ""
+    for text in start_text(r):
+        assert "マージ済み" not in text
+
+
+def test_session_start_github以外のリモートではマージ済みの案内を出さない(make_repo, hook, git, env):
+    repo = make_repo(remote="other")
+    merged_branch(repo, git, env)
+    r = hook("session-start", {"session_id": "s", "cwd": str(repo.path)})
+    for text in start_text(r):
+        assert "マージ済み" not in text
+
+
 # --- 受入条件 3・4: ブランチ確認と免除 --------------------------------------
 
 
@@ -541,6 +607,39 @@ def test_stop_github以外のリモートではpushやprを促さない(make_rep
     git(repo.path, "switch", "-c", "feat/x")
     git(repo.path, "commit", "--allow-empty", "-m", "feat: x")
     mark_edit(hook, repo, "s1")
+    assert stop(hook, repo, "s1").out == ""
+
+
+def test_stop_作業ブランチのprがマージ済みなら編集がなくても削除を促し同じ状態では1回だけ(repo, hook, git, env):
+    merged_branch(repo, git, env)
+    r = stop(hook, repo, "s1")
+    assert r.json["decision"] == "block"
+    assert "マージ済み" in r.json["reason"]
+    assert "#12" in r.json["reason"]
+    assert "git status" in r.json["reason"]  # 削除の前の確認を飛ばさせない
+    assert stop(hook, repo, "s1").out == ""
+
+
+@pytest.mark.parametrize("case", ["先頭が違う", "既定ブランチ上"])
+def test_stop_マージ済みの促しを出さない条件(case, repo, hook, git, env):
+    merged_branch(repo, git, env, head_matches=case != "先頭が違う")
+    if case == "既定ブランチ上":
+        git(repo.path, "switch", "main")
+    assert stop(hook, repo, "s1").out == ""
+
+
+def test_stop_編集あり_未コミットがあればマージ済みよりコミットを先に促す(repo, hook, git, env):
+    merged_branch(repo, git, env)
+    (repo.path / "new.txt").write_text("x", encoding="utf-8")
+    mark_edit(hook, repo, "s1")
+    reason = stop(hook, repo, "s1").json["reason"]
+    assert "コミット" in reason
+    assert "マージ済み" not in reason
+
+
+def test_stop_github以外のリモートではマージ済みの促しを出さない(make_repo, hook, git, env):
+    repo = make_repo(remote="other")
+    merged_branch(repo, git, env)
     assert stop(hook, repo, "s1").out == ""
 
 
