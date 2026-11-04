@@ -4,7 +4,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 
 - **必須**は守る。**推奨**は、守らない理由があれば外してよい。
 - 〔公式〕は、公式の仕様に依存する規則を指す。
-- Python の規則（A1・A4・A5・A6・A7・H5 の Python の部分）は、`~\.claude\rules\python-venv.md` の 2 に書く。
+- Python の規則（A1・A4・A5・A6・A7・H5 の Python の部分）は、`~\.claude\rules\python-venv.md` の 2 に書く。ただし、venv の位置（A2）と新規環境の検査（F2）は、言語に依存しないので、この文書に書く。
 - `<PLUGIN>` はプラグイン名、`<SKILL>` はスキル名を表す。Windows 前提で書く。
 
 ## 用語
@@ -25,9 +25,9 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 - 専用環境と状態は `${CLAUDE_PLUGIN_DATA}` に置く。
 - `${CLAUDE_PLUGIN_ROOT}` には状態を置かない。更新で中身が入れ替わる。
 - `claude --plugin-dir` で読み込むと、置き場が本番と別になる。開発時は A7 で固定する。
-- 置き場は、A7 の優先順で決まる 1 つのパス。通常は `--data "${CLAUDE_PLUGIN_DATA}"` の値で、開発・テストで `<PLUGIN>_HOME` を設定したときはそちらが優先される。
+- 置き場は、環境変数 `<PLUGIN>_HOME`、引数 `--data <パス>` の順で決まる 1 つのパス（A7 と同じ順。A2 では必須）。通常は `--data "${CLAUDE_PLUGIN_DATA}"` の値で、開発・テストで `<PLUGIN>_HOME` を設定したときはそちらが優先される。
 - Python の専用 venv は、入口スクリプトの言語（Python、Node）を問わず、置き場の直下の `venv\` に作る。実行ファイルは `venv\Scripts\python.exe`。Node の依存（`node_modules`）は対象外。
-- venv の位置を、置き場と別に指定する設定（環境変数・引数・設定ファイル）は作らない。置き場を変えたら、venv は新しい置き場の下に作り直す（venv は移動できない）。〔機械: 置き場を一時フォルダにして `setup --yes` を実行し、`<置き場>\venv\Scripts\python.exe` ができて、リポジトリと `${CLAUDE_PLUGIN_ROOT}` に venv ができない〕
+- venv の位置を、置き場と別に指定する設定（環境変数・引数・設定ファイル）は作らない。置き場を変えたら、venv は新しい置き場の下に作り直す（venv は移動できない）。新しい場所は未承認なので、A5 の承認を取り直してから作る。〔機械: 置き場を一時フォルダにして `setup --yes` を実行し、`<置き場>\venv\Scripts\python.exe` ができて、リポジトリと `${CLAUDE_PLUGIN_ROOT}` に venv ができない〕
 
 ### A3. 変数は引数で渡す（必須）〔公式〕
 - `${CLAUDE_PLUGIN_ROOT}`・`${CLAUDE_PLUGIN_DATA}` は、SKILL.md（と agent）の本文に書く。
