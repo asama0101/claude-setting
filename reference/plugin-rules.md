@@ -25,6 +25,9 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 - 専用環境と状態は `${CLAUDE_PLUGIN_DATA}` に置く。
 - `${CLAUDE_PLUGIN_ROOT}` には状態を置かない。更新で中身が入れ替わる。
 - `claude --plugin-dir` で読み込むと、置き場が本番と別になる。開発時は A7 で固定する。
+- 置き場は、A7 の優先順で決まる 1 つのパス。通常は `--data "${CLAUDE_PLUGIN_DATA}"` の値で、開発・テストで `<PLUGIN>_HOME` を設定したときはそちらが優先される。
+- 専用 venv を持つ入口スクリプトは、言語（Python、Node）を問わず、置き場の直下の `venv\` に作る。Python は `venv\Scripts\python.exe`。
+- venv の位置を、置き場と別に指定する設定（環境変数・引数・設定ファイル）は作らない。置き場が変わると venv も一緒に移る。〔機械: 置き場を一時フォルダにして `setup --yes` を実行し、`<置き場>\venv` ができて、ほかの場所に venv ができない〕
 
 ### A3. 変数は引数で渡す（必須）〔公式〕
 - `${CLAUDE_PLUGIN_ROOT}`・`${CLAUDE_PLUGIN_DATA}` は、SKILL.md（と agent）の本文に書く。
@@ -63,6 +66,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 - 単体スキルでは、`${CLAUDE_PLUGIN_ROOT}`・`${CLAUDE_PLUGIN_DATA}` が使えない。代わりに `${CLAUDE_SKILL_DIR}` を使う。
 - 置き場は、環境変数 `<SKILL>_HOME`、`%LOCALAPPDATA%\<スキル名>\` の順で決める。
 - A1・A4・A5・A6・A8 はそのまま適用する。A2・A7 はこの優先順で置き換える。A3 は適用しない。
+- 専用 venv は、この優先順で決まる置き場の直下の `venv\` に作る（A2 と同じ）。
 
 ## B. 本体と利用者の成果物の分離
 
@@ -189,7 +193,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 ## G. チェックリスト
 
 F1 で検査できない項目を、レビュー時に目視で確認する。
-- [ ] A2・A3 状態は `${CLAUDE_PLUGIN_DATA}` に置き、変数は引数で渡している
+- [ ] A2・A3 状態は `${CLAUDE_PLUGIN_DATA}` に置き、専用 venv は置き場直下の `venv\` に作り、変数は引数で渡している
 - [ ] A4 依存をすべて `==` で固定している
 - [ ] A5・A6 承認後の `setup --yes`、`doctor`、終了コード 0/1/2/3 がある
 - [ ] B1 実行時に `${CLAUDE_PLUGIN_ROOT}` へ書いていない
