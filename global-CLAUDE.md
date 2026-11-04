@@ -72,4 +72,4 @@ LLM がコーディングでよく犯す間違いを減らすための行動指�
 | ユーザーに渡す文章を書く | `writing.md` |
 | スキル・プラグインの作成・変更 | `plugin-rules.md` |
 | Git/GitHub の作業（ブランチ、PR、リリース、バージョン表記） | `git-flow.md` |
-| Windows で作業する（最初のツール呼び出しの前） | `environment.md` |
+| 作業環境 | `environment.md` |
