@@ -147,7 +147,7 @@ foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','reference','
 | `tui` | `fullscreen` | 画面の表示方式。 |
 
 - `permissions.allow` と `permissions.deny` の中身は、`settings.json` で確認する。`deny` は、`.env`・`.ssh`・認証情報のファイルを守る。プロジェクトの `.env.example` や `.npmrc` の編集も、拒否される。
-- `permissions.ask` は、修復できない破壊的コマンドの 11 件である: `git reset --hard`・`git clean`・`git checkout --`・`git restore`・`git checkout .`・`rm -r`・`rm -rf`・`rm -fr`・`git switch --discard-changes`・`git switch -f`・`git switch --force`。`git push`・`git tag`・`gh pr merge`・`gh release create`・`git commit`・`gh pr create` は、修復できるので、確認の対象外である（`main` 上のコミットと、強制 push は Hook が拒否する）。auto mode でも確認が出る。
+- `permissions.ask` は、修復できない破壊的コマンドの 11 件である: `git reset --hard`・`git clean`・`git checkout --`・`git restore`・`git checkout .`・`rm -r`・`rm -rf`・`rm -fr`・`git switch --discard-changes`・`git switch -f`・`git switch --force`。`git push`・`git tag`・`gh release create`・`git commit`・`gh pr create` は、修復できるので、確認の対象外である（`main` 上のコミットと、強制 push は Hook が拒否する）。`gh pr merge` は、確認ではなく、Hook が常に拒否する（マージはユーザーが行う）。auto mode でも確認が出る。
 - `env` の `CLAUDE_CODE_USE_POWERSHELL_TOOL` を `0` にして、PowerShell ツール（PowerShell でコマンドを実行する Claude Code のツール）を無効にしている。hook と `permissions.ask` は Bash ツールだけを対象にするので、PowerShell ツールが有効だと、これらを通らずに `git reset --hard` などが実行される。Git Bash がある Windows では、`permissions.deny` に Bash のルール（`Bash(sudo *)`）があるだけでも PowerShell ツールは無効になるが、ルールを変えると有効に戻るので、明示的に無効にしてある。
 - `git restore --staged` にも確認が出る。`git checkout .` は完全一致なので、`git checkout ./dir` や `git checkout HEAD -- f` は対象外である。
 - `attribution.sessionUrl` を `false` にしても、`Co-Authored-By`（コミットに付く共著者の行）と PR の定型文は、既定のまま付く。
