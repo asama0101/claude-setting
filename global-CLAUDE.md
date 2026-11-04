@@ -70,4 +70,4 @@
 | ユーザーに渡す文章を書く | `writing.md` |
 | スキル・プラグインの作成・変更 | `plugin-rules.md` |
 | Git/GitHub の作業（ブランチ、PR、リリース、バージョン表記） | `git-flow.md` |
-| 作業環境 | `environment.md` |
+| ファイルのパスを書く・渡す作業、Bash ツールの実行 | `environment.md` |
