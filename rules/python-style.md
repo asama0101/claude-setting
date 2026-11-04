@@ -8,8 +8,8 @@ paths:
 Python のコードを書く、または変更するときに従う規則。PEP 8・PEP 257・PEP 484 などの型ヒント・ruff の既定に従う。ここには、標準が定めないプロジェクトの決定だけを書く。
 
 - 次は、ここに重ねて書かない。
-  - テスト: `.claude/rules/python-testing.md`
-  - venv・終了コード・依存の固定: `.claude/rules/python-venv.md`
+  - テスト: `~/.claude/rules/python-testing.md`
+  - venv・終了コード・依存の固定: `~/.claude/rules/python-venv.md`
 - 既存のコードには、新規と変更したファイルから適用する。一括で直さない。
 
 ## 1. 道具
