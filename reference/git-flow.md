@@ -12,7 +12,7 @@ Hook（`hooks/git_flow.py`）が守らせる GitHub Flow の規則。Git 管理�
 5. PR を作る。タイトルも Conventional Commits の形式にする。
 6. レビューを受ける。
 7. ユーザーが `--squash` で main にマージする（1 PR = 1 コミット）。Claude はマージしない。
-8. マージ済みと分かったとき（ユーザーが伝えたとき、または未リリースの案内を見たとき）、Claude が既定ブランチに戻って最新を取り込み、作業ブランチをローカルと origin の両方から削除する。
+8. マージ済みと分かったとき（ユーザーが伝えたとき、または未リリースの案内を見たとき）、Claude が作業ブランチを削除する（手順は「作業ブランチを削除するとき」）。
 9. 続けて、Claude が AskUserQuestion で「リリースする／しない」を聞く。「する」なら、タグ（`vMAJOR.MINOR.PATCH`）を打ち、GitHub Release を作る。
 
 ## ブランチ名
