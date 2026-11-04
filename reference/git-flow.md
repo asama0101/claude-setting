@@ -21,9 +21,10 @@ Hook（`hooks/git_flow.py`）が守らせる GitHub Flow の規則。Git 管理�
    - Claude はマージしない。
    - Claude は、PR の URL と `gh pr merge <番号> --squash` を案内する。
 8. 作業ブランチを削除する
-   - 契機: マージ済みと分かったとき（ユーザーが伝えたとき、または未リリースの案内を見たとき）。
+   - 契機: ユーザーがマージしたと伝えたとき、または `gh pr view <作業ブランチ> --json state` が MERGED を返したとき。
    - Claude が削除する。手順は「作業ブランチを削除するとき」。
 9. リリースする
+   - 契機: 段階8のあと、またはセッション開始時に「リリース未作成」の案内を見たとき。
    - Claude が AskUserQuestion で「リリースする／しない」を聞く。
    - リリースする場合は、タグ（`vMAJOR.MINOR.PATCH`）を打ち、GitHub Release を作る。
 
@@ -93,11 +94,10 @@ force push は外れない。
 
 ## リリースするとき
 
-マージ済みと分かったときに行う。
+段階8のあと、またはセッション開始時に「リリース未作成」の案内を見たときに行う。
 
-1. `gh pr view --json state` で state が MERGED であることを確認する。MERGED でなければ、止めてユーザーに報告する。
-2. AskUserQuestion でユーザーに「リリースする（提案する版）／しない」を聞く（版の確認と兼ねる）。
-3. リリースする場合は、次を実行する。
+1. AskUserQuestion でユーザーに「リリースする（提案する版）／しない」を聞く（版の確認と兼ねる）。
+2. リリースする場合は、次を実行する。
    - `git fetch origin`
    - `git tag <版> origin/<既定ブランチ>`
    - `git push origin <版>`
