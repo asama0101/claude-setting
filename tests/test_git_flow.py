@@ -701,8 +701,8 @@ def test_uncommitted_warnは削除され参照が残っていない():
 
 def test_reference_git_flowに必要な内容がある():
     text = (ROOT / "reference" / "git-flow.md").read_text(encoding="utf-8")
-    steps = re.findall(r"^[1-8]\. ", text.split("## 基本フロー")[1].split("##")[0], re.MULTILINE)
-    assert len(steps) == 8
+    steps = re.findall(r"^[1-9]\. ", text.split("## 基本フロー")[1].split("##")[0], re.MULTILINE)
+    assert len(steps) == 9
     for expected in ("## バージョン表記の定義", r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$",
-                     "## 各段階を Hook がどう扱うか", "feat/", "fix/", "docs/", "chore/", "--squash"):
+                     "## 各段階を Hook がどう扱うか", "feat/", "fix/", "docs/", "chore/", "--squash", "git push origin --delete", "git branch -D"):
         assert expected in text, expected

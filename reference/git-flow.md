@@ -8,11 +8,12 @@ Hook（`hooks/git_flow.py`）が守らせる GitHub Flow の規則。Git 管理�
 2. ファイルを作成・削除・編集する。
 3. Conventional Commits の形式でコミットする（type は英語、説明は日本語）。
    - 例: `docs: git-flow.md の段階7を直す`
-4. push する。
+4. 作業ブランチを origin に push する。
 5. PR を作る。タイトルも Conventional Commits の形式にする。
 6. レビューを受ける。
 7. ユーザーが `--squash` で main にマージする（1 PR = 1 コミット）。Claude はマージしない。
-8. マージ済みと分かったとき（ユーザーが伝えたとき、または未リリースの案内を見たとき）、Claude が AskUserQuestion で「リリースする／しない」を聞く。「する」なら、タグ（`vMAJOR.MINOR.PATCH`）を打ち、GitHub Release を作る。
+8. マージ済みと分かったとき（ユーザーが伝えたとき、または未リリースの案内を見たとき）、Claude が既定ブランチに戻って最新を取り込み、作業ブランチをローカルと origin の両方から削除する。
+9. 続けて、Claude が AskUserQuestion で「リリースする／しない」を聞く。「する」なら、タグ（`vMAJOR.MINOR.PATCH`）を打ち、GitHub Release を作る。
 
 ## ブランチ名
 
@@ -58,12 +59,25 @@ PR の工程（段階4の push 待ち、5、7）は、`origin` が `github.com` 
 | 5 PR 作成 | 促し（block） | PR 作成を促す。タイトルの形式は検査しない。 |
 | 6 レビュー | 助言のみ | Hook では扱わない。 |
 | 7 マージ | 強制（deny） | `gh pr merge` を常に拒否する。マージはユーザーが行う。 |
-| 8 タグとリリース | 助言のみ | Hook では扱わない。セッション開始時に、未リリースのコミットがあれば、提案する版を知らせる。 |
+| 8 作業ブランチの削除 | 助言のみ | Hook では扱わない。 |
+| 9 タグとリリース | 助言のみ | Hook では扱わない。セッション開始時に、未リリースのコミットがあれば、提案する版を知らせる。 |
 
 ## ブランチを切らないとき
 
 「切らない」を選ぶと、Claude が `git_flow.py allow-main <セッション ID>` を実行する。そのセッションの間だけ、ブランチ確認と、既定ブランチへの commit・push の拒否が外れる。
 force push は外れない。
+
+## 作業ブランチを削除するとき
+
+マージ済みと分かったときに行う。squash マージでは、作業ブランチのコミットが既定ブランチに入らない。そのため `git branch -d` の判定は当てにならない。`-D` を使い、その代わりに、削除の前に次の確認をする。
+
+1. 次を確認する。どれかが満たされなければ、止めてユーザーに報告する。
+   - `gh pr view <作業ブランチ> --json state,headRefOid` の state が MERGED である。
+   - `headRefOid` が `git rev-parse <作業ブランチ>` と一致する（PR のあとにローカルで足したコミットを消さないため）。
+   - `git status` で、未コミットの変更がない。
+2. `git switch <既定ブランチ>` と `git pull --ff-only` で、最新を取り込む。
+3. `git branch -D <作業ブランチ>` を実行する。
+4. origin の作業ブランチが残っていれば、`git push origin --delete <作業ブランチ>` を実行する（GitHub の自動削除で消えているときは省く。`git fetch --prune` で確かめる）。
 
 ## リリースするとき
 
