@@ -148,7 +148,12 @@ export const register: Register = on => {
   })
 
   on('prompt.submit', async ($, e, next) => {
-    if (e.text.trim() !== '') {
+    // 履歴には、ユーザーが送ったものだけを載せる。サブエージェント宛てなど、他の送信元は載せない。
+    const byUser =
+      e.origin?.kind === 'composer' ||
+      e.origin?.kind === 'bridge' ||
+      (e.origin?.kind === 'plugin' && e.origin.name === 'session-desk')
+    if (byUser && e.text.trim() !== '') {
       await update($, history, list => [...list, e.text])
     }
 

@@ -23,8 +23,8 @@ function fakeEngine(on: any) {
   on('session.cwd', () => ({ value: 'D:/p' }))
 }
 
-// 実際の送信は wait と origin も持つ。テストでは text だけを渡す。
-const send = ($: any, text: string) => $.prompt.submit({ text })
+// 実際の送信は wait と origin も持つ。テストでは text と、ユーザーの送信を表す origin を渡す。
+const send = ($: any, text: string, origin: any = { kind: 'composer' }) => $.prompt.submit({ text, origin })
 
 // 一覧の行は、番号つきの Text。描画の JSON から、順に取り出す。
 const rows = async (ui: any): Promise<string[]> => textsOf(await ui.drawn()).filter(text => /^[0-9]+\. /.test(text))
@@ -145,5 +145,18 @@ test('history shows a note when nothing was sent', async ($, on) => {
   fakeEngine(on)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect(await ui.find({ type: 'Text', text: 'なし' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('history records only prompts the user sent: Enter, the phone or web, and the pane\'s own send', async ($, on) => {
+  fakeEngine(on)
+  await send($, 'typed')
+  await send($, 'remote', { kind: 'bridge' })
+  await send($, 'quick', { kind: 'plugin', name: 'session-desk' })
+  await send($, 'to subagent', { kind: 'plugin', name: 'other' })
+  await send($, 'notice', { kind: 'task-notification' })
+  await send($, 'loop', { kind: 'scheduled-trigger' })
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await rows(ui)).toEqual(['3. quick', '2. remote', '1. typed'])
   await ui.unmount()
 })
