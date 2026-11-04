@@ -9,7 +9,7 @@ venv を作る・使うときに従う規則。1 は開発用の venv、2 はプ
 
 - 必須を外すときは、利用者に理由を示して了承を得る。
 - 確認方法を〔機械〕（コマンド）か〔目視〕（レビュー）で示す。
-- 2 は、`plugin-rules.md`（`~\.claude\reference\`）の A1・A4・A5・A6・A7・H5 の Python の部分。
+- 2 は、`plugin-rules.md`（`.claude/reference/`）の A1・A4・A5・A6・A7・H5 の Python の部分。
 - 用語（専用環境・置き場・入口スクリプト）は `plugin-rules.md` の「用語」に従う。
 
 ## 1. 開発用の venv

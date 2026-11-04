@@ -4,7 +4,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 
 - **必須**は守る。**推奨**は、守らない理由があれば外してよい。
 - 〔公式〕は、公式の仕様に依存する規則を指す。
-- Python の規則（A1・A4・A5・A6・A7・H5 の Python の部分）は、`~\.claude\rules\python-venv.md` の 2 に書く。ただし、venv の位置（A2）と新規環境の検査（F2）は、言語に依存しないので、この文書に書く。
+- Python の規則（A1・A4・A5・A6・A7・H5 の Python の部分）は、`.claude/rules/python-venv.md` の 2 に書く。ただし、venv の位置（A2）と新規環境の検査（F2）は、言語に依存しないので、この文書に書く。
 - `<PLUGIN>` はプラグイン名、`<SKILL>` はスキル名を表す。Windows 前提で書く。
 
 ## 用語
@@ -152,7 +152,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 ## F. 検査
 
 ### F1. 最低限の検査（必須）
-次の内容をテストにする。Python のテストは `~\.claude\rules\python-testing.md` に従う。
+次の内容をテストにする。Python のテストは `.claude/rules/python-testing.md` に従う。
 1. 全 SKILL.md に frontmatter があり、`name` がディレクトリ名と一致する。
 2. SKILL.md に、絶対パス（`C:/Users` など）・`${CLAUDE_SKILL_DIR}` がない。
 3. SKILL.md が書く `${CLAUDE_PLUGIN_ROOT}/…` が指すファイルが実在する。
