@@ -4,17 +4,28 @@ Hook（`hooks/git_flow.py`）が守らせる GitHub Flow の規則。Git 管理�
 
 ## 基本フロー
 
-1. main の最新を取り込み、作業ブランチを切る。
-2. ファイルを作成・削除・編集する。
-3. Conventional Commits の形式でコミットする（type は英語、説明は日本語）。
+1. 作業ブランチを切る
+   - main の最新を取り込む。
+2. 編集する
+   - ファイルを作成・削除・編集する。
+3. コミットする
+   - Conventional Commits の形式にする（type は英語、説明は日本語）。
    - 例: `docs: git-flow.md の段階7を直す`
-4. 作業ブランチを origin に push する。
-5. PR を作る。タイトルも Conventional Commits の形式にする。
-6. レビューを受ける。
-7. ユーザーが `--squash` で main にマージする（1 PR = 1 コミット）。Claude はマージしない。
+4. push する
+   - 作業ブランチを origin に push する。
+5. PR を作る
+   - タイトルも Conventional Commits の形式にする。
+6. レビューを受ける
+7. マージする（ユーザー）
+   - ユーザーが `--squash` で main にマージする（1 PR = 1 コミット）。
+   - Claude はマージしない。
    - Claude は、PR の URL と、実行するコマンド（`gh pr merge <番号> --squash`）をユーザーに案内する。
-8. マージ済みと分かったとき（ユーザーが伝えたとき、または未リリースの案内を見たとき）、Claude が作業ブランチを削除する（手順は「作業ブランチを削除するとき」）。
-9. 続けて、Claude が AskUserQuestion で「リリースする／しない」を聞く。「する」なら、タグ（`vMAJOR.MINOR.PATCH`）を打ち、GitHub Release を作る。
+8. 作業ブランチを削除する
+   - 契機: マージ済みと分かったとき（ユーザーが伝えたとき、または未リリースの案内を見たとき）。
+   - Claude が削除する。手順は「作業ブランチを削除するとき」。
+9. リリースする
+   - Claude が AskUserQuestion で「リリースする／しない」を聞く。
+   - 「する」なら、タグ（`vMAJOR.MINOR.PATCH`）を打ち、GitHub Release を作る。
 
 ## ブランチ名
 
