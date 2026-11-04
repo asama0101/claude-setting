@@ -38,6 +38,8 @@ RETRY_WAIT_SEC = 0.02
 FETCH_TIMEOUT = 5
 KILL_TIMEOUT = 2
 MAX_LINES = 10  # 理由に列挙する行数の上限
+MERGE_DENIED = ("gh pr merge は拒否します。マージはユーザーが行います（PR の画面、または `! gh pr merge <番号> --squash`）。"
+                "PR の URL をユーザーに伝えて、止まってください。")
 
 TAG_RE = re.compile(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
 TAG_PATTERN = r"^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$"
@@ -470,16 +472,15 @@ def refuse(sid: str | None, default: str, what: str) -> str:
 
 def check_segment(words: list[str], cwd: Path, sid: str | None, state: dict, new_branch: bool = False) -> str | None:
     """Bash の1コマンドを検査し、拒否するときの理由を返す。new_branch は、同じ行の前の部分でブランチを切ったか。"""
+    if is_gh_pr_merge(words):
+        return MERGE_DENIED
     g = parse_git(words)
-    gh_merge = is_gh_pr_merge(words)
     if is_file_op(words, g):
         d = file_op_dir(words, g, cwd)
         return edit_gate(d, sid, state, new_branch) if d else None
     d = segment_dir(cwd, g[2] if g else None)
-    if not (g or gh_merge) or not is_work_tree(d):
+    if not g or not is_work_tree(d):
         return None
-    if gh_merge:
-        return merge_gate(d)
     sub, args, _ = g
     branch, default = (None if new_branch else current_branch(d)), default_branch(d)
     ready = bool(default) and has_commits(d) and not state.get("allow_main")
@@ -495,14 +496,6 @@ def check_segment(words: list[str], cwd: Path, sid: str | None, state: dict, new
     if sub == "commit" or (sub == "merge" and not {"--abort", "--continue", "--quit"} & set(args)):
         return refuse(sid, default, f"{default} 上の git {sub}") if ready and branch == default else None
     return None
-
-
-def merge_gate(d: str) -> str | None:
-    """GitHub のリモートでは、gh pr merge を常に拒否する。マージはユーザーが行う。"""
-    if not is_github(d) or not default_branch(d):
-        return None
-    return ("gh pr merge は拒否します。マージはユーザーが行います（PR の画面、または `! gh pr merge <番号> --squash`）。"
-            "PR の URL をユーザーに伝えて、止まってください。")
 
 
 def pre_tool(data: dict) -> None:

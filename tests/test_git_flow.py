@@ -500,15 +500,22 @@ def test_githubのリモートではgh_pr_mergeを常に拒否しユーザーが
     assert "ユーザーが行います" in reason
 
 
-@pytest.mark.parametrize("command", ["gh pr view 12", "gh -R owner/repo pr view 12", "gh pr list", "gh pr comment 12 --body merge",
+@pytest.mark.parametrize("command", ["gh pr view 12", "gh -R owner/repo pr view 12", "gh pr list", "gh pr comment 12 --body merge", 'echo "gh pr merge"', 'grep "gh pr merge" README.md',
                                      "gh", "gh pr"])
 def test_merge以外のgh_prは拒否しない(command, repo, hook):
     assert hook("pre-tool", bash_in(repo, command)).out == ""
 
 
-def test_github以外のリモートではgh_pr_mergeを拒否しない(make_repo, hook):
+def test_github以外のリモートでもgh_pr_mergeを拒否する(make_repo, hook):
     repo = make_repo(remote="other")
-    assert hook("pre-tool", bash_in(repo, "gh pr merge --squash")).out == ""
+    assert denied(hook("pre-tool", bash_in(repo, "gh pr merge --squash"))) is not None
+
+
+@pytest.mark.parametrize("command", ["gh pr merge 12 -R owner/repo", "gh pr -R owner/repo merge 12 --squash", "gh pr merge",
+                                     "cd x && gh pr merge 1", "echo hi; gh pr merge 1"])
+def test_作業ツリーの外でもgh_pr_mergeを拒否する(command, not_work_tree, hook):
+    r = hook("pre-tool", tool_payload(not_work_tree, "Bash", command=command))
+    assert "ユーザーが行います" in (denied(r) or "")
 
 
 # --- 受入条件 14: タグ名の検査 -----------------------------------------------
