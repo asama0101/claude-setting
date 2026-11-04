@@ -45,7 +45,7 @@ function fakeEngine(on: any, entries?: Record<string, unknown>) {
 }
 
 const start = ($: any) => $.session.start({ cwd: 'D:/p', surface: 'terminal', interactive: true })
-const send = ($: any, text: string) => $.prompt.submit({ text })
+const send = ($: any, text: string, origin: any = { kind: 'composer' }) => $.prompt.submit({ text, origin })
 // 定型文の一覧は、ふつうの Text。ボタンの label は props にあり、children には入らない。
 const labels = async (ui: any): Promise<string[]> => textsOf(await ui.drawn())
 const open = async ($: any) => {
