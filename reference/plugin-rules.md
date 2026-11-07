@@ -4,7 +4,7 @@
 
 - **必須**は守る。**推奨**は、理由があれば外してよい。〔公式〕は、公式の仕様に依存する規則。
 - 配布しない個人用は、E・H1・H2・F1 の 5 を除いて守る。
-- Python の規則（A1・A4〜A7・H5）は、`~/.claude/rules/python-venv.md` の 2 にも書く。Windows 前提。
+- Python の規則（A1・A4〜A7・H3）は、`~/.claude/rules/python-venv.md` の 2 にも書く。Windows 前提。
 - `<PLUGIN>`・`<SKILL>` は名前。環境変数名では、大文字にして `-` を `_` にする（`MY_PLUGIN_HOME`）。
 
 ## 用語
@@ -59,7 +59,7 @@
 - 推奨: 開発専用の探索（環境の自動検出など）は作らない。
 - 開発・検査の `<PLUGIN>_HOME` は、そのコマンドの環境にだけ設定する。
 
-### A9. 単体スキル（必須）〔公式〕
+### A8. 単体スキル（必須）〔公式〕
 - `${CLAUDE_SKILL_DIR}` を使う（`${CLAUDE_PLUGIN_*}` は使えない）。
 - 置き場は、`<SKILL>_HOME`、`%LOCALAPPDATA%\<SKILL>\` の順で決める。同名のスキルを、ユーザー用とプロジェクト用の両方に作らない。
 - A3・C2・E・H1・H2 は適用しない。他は読み替えて適用する。
@@ -87,12 +87,12 @@
 - agent の `tools` は、必要なものだけにする。MCP は `mcp__<server>__*` で絞る。MCP を利用者が決める agent だけは、省略してよい（全ツールを継承する。理由を README に書く）。
 - プラグインの agent では、`hooks`・`mcpServers`・`permissionMode`・`initialPrompt` は無視される。
 
-### C5. 副作用のあるスキルは自動起動させない（必須）〔公式〕
+### C4. 副作用のあるスキルは自動起動させない（必須）〔公式〕
 - 外部への送信、不可逆な書き込み、常駐（`monitors` を含む）、`setup` の呼び出しは、`disable-model-invocation: true` にする。
 
 ## D. 出典
 
-### D2. 出典を書く（必須）
+### D1. 出典を書く（必須）
 - 取り込んだ文書・コードの出典とライセンスは、プラグインのルート（`plugins/<名前>/NOTICE`）に書く。直下の README は配布物に入らない。
 
 ## E. 配布
@@ -102,15 +102,15 @@
 - version は、メタとコードで一致させ、更新を届けるときに上げる（書くと、変えるまで更新は届かない）。
 - agents・skills・commands・hooks は、`.claude-plugin/` に置かない。
 
-### E3. リポジトリの構成（推奨）
+### E2. リポジトリの構成（推奨）
 - 本体は `plugins/<名前>/`、`source` は `./plugins/<名前>`（`./` で始め、`..` を含めない）。tests・docs は直下に置く。
 - 直下をプラグインにするのは、tests・docs のない極小のものだけ。`source` は `"."`、F1 は `validate --strict` と目視で代える。
 - README は直下に 1 つ。対応 OS と、消えるもの・残るものを書く。
 
-### E4. marketplace.json（必須）〔公式〕
+### E3. marketplace.json（必須）〔公式〕
 - `name`・`owner.name`・`plugins[].{name,source,description}` を書く。`plugins[].version` は書かない。
 
-### E5. 配置と読み込み（推奨）
+### E4. 配置と読み込み（推奨）
 - `plugins/<PLUGIN>/` 直下に、`.claude-plugin/plugin.json`・`skills/<SKILL>/SKILL.md`・入口・依存の固定ファイルを置く。agent は `agents/`、hooks と `bin/` はルート直下。
 - `hooks/hooks.json` は、最上位の `"hooks"` キーで包む（包まないと読まれない）。
 - 開発は `claude --plugin-dir ./plugins/<名前>`（直下がプラグインなら `.`）。〔公式〕
@@ -146,11 +146,11 @@
 F1 にない項目を、レビューで目視する。
 - [ ] A1〜A3・A7 専用環境の中だけで実行し、状態と venv は置き場に置き、変数は引数で渡している
 - [ ] A4〜A6 依存を固定し、承認後の `setup --yes`、`doctor`、終了コード 0〜3 がある
-- [ ] C1・C3・C5 description が揃い、`allowed-tools`・`tools` を絞り、`setup` を含めず、`$ARGUMENTS` を埋め込まず、副作用に `disable-model-invocation: true` がある
-- [ ] D2・E1・E4 `NOTICE`、plugin.json、marketplace.json がある
-- [ ] E5 hooks と `bin/` のコマンドを C2 に準じて書いている
+- [ ] C1・C3・C4 description が揃い、`allowed-tools`・`tools` を絞り、`setup` を含めず、`$ARGUMENTS` を埋め込まず、副作用に `disable-model-invocation: true` がある
+- [ ] D1・E1・E3 `NOTICE`、plugin.json、marketplace.json がある
+- [ ] E4 hooks と `bin/` のコマンドを C2 に準じて書いている
 - [ ] H1・H2 対応 OS を明記し、予約名を使っていない
-- [ ] 推奨: A7 の推奨・E3・E5・F2・H5
+- [ ] 推奨: A7 の推奨・E2・E4・F2・H3
 
 ## H. その他
 
@@ -161,6 +161,6 @@ F1 にない項目を、レビューで目視する。
 - プラグイン名は kebab-case。`claude-`・`anthropic-`・`anthropics-`・`cc-plugin-` で始めず、`claude`・`anthropic`・`anthropics`・`claude-code`・`claude-mods` そのものにしない。`official` を `claude`・`anthropic` の隣に置かない。
 - marketplace 名に、公式の「Reserved names」（`inline`・`builtin`・`npm`・`github` など）と、`claudeai-` で始まる名前を使わない。
 
-### H5. 依存の取得元とパス（推奨）
+### H3. 依存の取得元とパス（推奨）
 - 依存は PyPI・npm から取得し、可能ならハッシュも固定する。
 - パスをクォートし、空白・日本語のパスでも動くことをテストする。
