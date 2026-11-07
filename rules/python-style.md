@@ -9,7 +9,7 @@ Python のコードを書く、または変更するときに従う規則。PEP 
 
 - 次は、ここに重ねて書かない。
   - テスト: `~/.claude/rules/python-testing.md`
-  - venv・終了コード・依存の固定: `~/.claude/rules/python-venv.md`
+  - venv: `~/.claude/rules/python-venv.md`
 - 既存のコードには、新規と変更したファイルから適用する。一括で直さない。
 
 ## 1. 道具
