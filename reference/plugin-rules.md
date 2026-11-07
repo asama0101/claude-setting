@@ -57,7 +57,7 @@
 
 ### A8. 単体スキル（必須）〔公式〕
 - `${CLAUDE_SKILL_DIR}` を使う（`${CLAUDE_PLUGIN_*}` は使えない）。
-- 置き場は、`<SKILL>_HOME`、`%LOCALAPPDATA%\<SKILL>\` の順で決める。同名のスキルを、ユーザー用とプロジェクト用の両方に作らない。
+- 置き場は、`<SKILL>_HOME`、OS の既定の場所の順で決める。既定は、Windows が `%LOCALAPPDATA%\<SKILL>\`、Linux が `${XDG_DATA_HOME:-$HOME/.local/share}/<SKILL>/`。同名のスキルを、ユーザー用とプロジェクト用の両方に作らない。
 - A3・C2・E・H1・H2 は適用しない。他は読み替えて適用する。
 
 ## B. 本体は読み取り専用

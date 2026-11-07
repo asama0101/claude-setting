@@ -24,9 +24,9 @@ venv を作る・使うときに従う規則。1 は開発用の venv、2 はプ
 
 - 本体は専用 venv の中だけで実行する。
 - システムの Python は入口スクリプトの起動にだけ使う。〔目視〕
-- 専用 venv は、置き場の直下の `venv\` に作る（実行ファイルは `venv\Scripts\python.exe`）。
-- 専用 venv の `python.exe` は `-B -I` で起動する（`-B` は `__pycache__` を書かず、`-I` は環境変数を読まない）。入口は 1 ファイルにする（`-I` は入口のフォルダを読まない）。〔目視〕
-- `python` を起動できないとき（Store のスタブなど）の案内（`py -3`）を SKILL.md に書く。
+- 専用 venv は、置き場の直下の `venv` に作る（実行ファイルは、Windows が `venv\Scripts\python.exe`、Linux が `venv/bin/python`）。
+- 専用 venv の `python` は `-B -I` で起動する（`-B` は `__pycache__` を書かず、`-I` は環境変数を読まない）。入口は 1 ファイルにする（`-I` は入口のフォルダを読まない）。〔目視〕
+- `python` を起動できないとき（Windows の Store のスタブ、Linux の `python3` のみなど）の案内（`py -3`、`python3`）を SKILL.md に書く。
 
 ### 2-2. 依存は `requirements.txt` で `==` 固定する（必須。A4）
 
