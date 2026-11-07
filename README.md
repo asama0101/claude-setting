@@ -1,13 +1,12 @@
 # claude-setting
 
 Claude Code の個人設定（`~\.claude`）を、フォルダのコピーだけで取り込めるようにしたバックアップ。
-Claude Code を Windows で使う人が、作業ルール、git 操作の確認、ステータスライン（画面の下端に出る情報の行）を一式で試せる。
+Claude Code を Windows で使う人が、作業ルールと git 操作の確認を一式で試せる。
 
 ## 機能
 
 - 作業の進め方を、規則（`CLAUDE.md`、`rules/`、`reference/`）で決める。Claude Code が、危ない操作の前に確認する。
 - 未コミット変更の破棄やファイルの削除など、修復できない破壊的コマンド（`git reset --hard`・`git clean`・`rm -rf` など）の前に、確認を必ず出す。auto mode（許可の確認を自動で判断するモード）でも出る。
-- ステータスラインに、モデル、フォルダ、ブランチ、コンテキスト（Claude が一度に扱える量）の使用率を出す。いまの状態を、画面の下端で確かめられる。
 - Git/GitHub のフロー（作業ブランチ → コミット → push → PR → squash マージ（ユーザーが行う）→ タグ・リリース）を、hook（セッションの開始・ツールの実行・応答の終了の節目で自動実行されるコマンド）が知らせ、守らせる。フローの詳細は [reference/git-flow.md](reference/git-flow.md) にある。別の作業をしていても気づけるよう、許可の確認・選択肢の質問・質問や依頼で終わる応答のときに、Windows のトースト通知（画面の隅に出る通知）を出す（作業が終わっただけの応答では出ない）。
 - コードの変更を最小にするスキル `ponytail`（`skills/`）が使える。
 
@@ -39,7 +38,7 @@ Claude Code を Windows で使う人が、作業ルール、git 操作の確認�
    ```powershell
    $bak = "$HOME\.claude-backup-$(Get-Date -Format yyyyMMdd-HHmmss)"
    New-Item -ItemType Directory -Force $bak | Out-Null
-   foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','reference','rules','skills') {
+   foreach ($f in 'CLAUDE.md','settings.json','hooks','reference','rules','skills') {
      if (Test-Path "$HOME\.claude\$f") { Copy-Item "$HOME\.claude\$f" $bak -Recurse }
    }
    ```
@@ -48,7 +47,7 @@ Claude Code を Windows で使う人が、作業ルール、git 操作の確認�
 
    ```powershell
    New-Item -ItemType Directory -Force "$HOME\.claude" | Out-Null
-   Copy-Item settings.json,statusline.py,hooks,reference,rules,skills "$HOME\.claude\" -Recurse -Force
+   Copy-Item settings.json,hooks,reference,rules,skills "$HOME\.claude\" -Recurse -Force
    Copy-Item global-CLAUDE.md "$HOME\.claude\CLAUDE.md" -Force
    ```
 
@@ -61,7 +60,7 @@ Claude Code を終了してから実行する。最初に作った退避フォ�
 ```powershell
 $bak = (Get-ChildItem $HOME -Directory -Filter '.claude-backup-*' | Sort-Object Name | Select-Object -First 1).FullName
 if (-not $bak) { throw '退避フォルダがありません。何も変更していません。' }
-foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','reference','rules','skills') {
+foreach ($f in 'CLAUDE.md','settings.json','hooks','reference','rules','skills') {
   if (Test-Path "$HOME\.claude\$f") { Remove-Item "$HOME\.claude\$f" -Recurse -Force }
   if (Test-Path "$bak\$f") { Copy-Item "$bak\$f" "$HOME\.claude\" -Recurse }
 }
@@ -75,7 +74,7 @@ foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','reference','
 
 ## 使い方
 
-導入の成果を、2 つの操作で確認する。
+導入の成果を、次の操作で確認する。
 
 1. コピーした `settings.json` が読めることを確認する。
 
@@ -87,20 +86,6 @@ foreach ($f in 'CLAUDE.md','settings.json','statusline.py','hooks','reference','
 
    ```text
    OK
-   ```
-
-2. ステータスラインを 1 回出力する。
-
-   ```powershell
-   [Console]::OutputEncoding = [Text.Encoding]::UTF8
-   '{"model":{"display_name":"Test"},"workspace":{"current_dir":"C:/work"}}' | py "$HOME\.claude\statusline.py"
-   ```
-
-   期待される出力（色の指定は省く）:
-
-   ```text
-   🤖 Test │ 📁 C:/work
-   💬 ctx --
    ```
 
 ## 設定

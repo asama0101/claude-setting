@@ -170,11 +170,6 @@
       }
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": "py \"$HOME/.claude/statusline.py\" || python3 \"$HOME/.claude/statusline.py\" || python \"$HOME/.claude/statusline.py\" || true",
-    "refreshInterval": 30
-  },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
