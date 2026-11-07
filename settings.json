@@ -183,7 +183,8 @@
     "pj-lens@pj-lens": true,
     "grill-form@grill-form": true,
     "vault-kb@vault-kb": true,
-    "pptx-deck@pptx-deck": true
+    "pptx-deck@pptx-deck": true,
+    "session-desk@session-desk": true
   },
   "extraKnownMarketplaces": {
     "grill-form": {
@@ -208,6 +209,12 @@
       "source": {
         "source": "github",
         "repo": "asama0101/pptx-deck"
+      }
+    },
+    "session-desk": {
+      "source": {
+        "source": "github",
+        "repo": "asama0101/session-desk"
       }
     }
   },
