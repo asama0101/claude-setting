@@ -4,7 +4,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 
 - **必須**は守る。**推奨**は、守らない理由があれば外してよい。
 - 〔公式〕は、公式の仕様に依存する規則を指す。公式の仕様は 2026-11-07 に `code.claude.com/docs` の plugins・skills・sub-agents の各ページで確認した。公式が求めていない、この文書独自の規則には〔公式〕を付けない。
-- 個人用で配布しないプラグインは、E と H1〜H3 と F1 の 6 を除いて守る。これらは、配布するときに守る。
+- 個人用で配布しないプラグインは、E と H1〜H3 と F1 の 5 を除いて守る。これらは、配布するときに守る。
 - Python の規則（A1・A4・A5・A6・A7・H5 の Python の部分）は、`~/.claude/rules/python-venv.md` の 2 に書く。ただし、venv の位置（A2）と新規環境の検査（F2）は、Python の専用 venv に限った規則で、この文書に書く。Node の扱いは A2 に書く。
 - `<PLUGIN>` はプラグイン名、`<SKILL>` はスキル名を表す。環境変数名の `<PLUGIN>_HOME`・`<SKILL>_HOME` では、名前を大文字にし、`-` を `_` に置き換える（`my-plugin` は `MY_PLUGIN_HOME`）。Windows 前提で書く。
 
@@ -30,7 +30,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 - Python の専用 venv は、入口スクリプトの言語（Python、Node）を問わず、置き場の直下の `venv\` に作る。実行ファイルは `venv\Scripts\python.exe`。
 - Node の依存（`node_modules`）は専用 venv の対象外。`package.json` と lockfile（`package-lock.json`）を本体に置き、公式の自動導入（キャッシュの作成時と更新時。lifecycle script は動かず、60 秒が上限）に任せる。`${CLAUDE_PLUGIN_ROOT}` で自分では `npm ci` しない。自動導入で入らない依存（ビルドが要るもの、60 秒で終わらないもの）は、Python と同じ A5 の承認を取って、置き場に入れる。
 - venv の位置を、置き場と別に指定する設定（環境変数・引数・設定ファイル）は作らない。置き場を変えたら、venv は新しい置き場の下に作り直す（venv は移動できない）。新しい場所は未承認なので、A5 の承認を取り直してから作る。
-- 〔機械〕置き場を空の一時フォルダにして、PyPI に接続できる環境で次を確かめる（F1 の 11 として実行する）。一時フォルダは、(c) で調べる場所の外に作る。
+- 〔機械〕置き場を空の一時フォルダにして、PyPI に接続できる環境で次を確かめる（F1 の 10 として実行する）。一時フォルダは、(c) で調べる場所の外に作る。
   - (a) `--yes` なしの `setup` が、終了コード 3 で止まり、`venv\` を作らない。
   - (b) `setup --yes` のあと、`<置き場>\venv\Scripts\python.exe` がある。
   - (c) (b) の前後で、`pyvenv.cfg` を含むフォルダの一覧が変わらない。調べる場所は、`${CLAUDE_PLUGIN_ROOT}`（単体スキルは `${CLAUDE_SKILL_DIR}`。実パスに置き換える）と、開発中はリポジトリ直下。再帰するときは `.git`・`node_modules` を除く。
@@ -84,7 +84,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 - 単体スキルでは、`${CLAUDE_PLUGIN_ROOT}`・`${CLAUDE_PLUGIN_DATA}` が使えない。代わりに `${CLAUDE_SKILL_DIR}` を使う。
 - 置き場は、環境変数 `<SKILL>_HOME`、`%LOCALAPPDATA%\<SKILL>\` の順で決める。既定の場所があるので、終了コード 2 は出ない。同名の単体スキルをユーザー用とプロジェクト用の両方に作らない（置き場が共有される）。
 - 専用 venv は、この優先順で決まる置き場の直下の `venv\` に作る（A2 と同じ）。
-- 適用する規則: A1・A4・A5・A6・A8・B1・B2・C1・C3〜C6・D1・D2・F1・F2（読み替えは F1・F2 のとおり）・G・H4・H5。A2・A7 は、上の優先順に置き換えて適用する。
+- 適用する規則: A1・A4・A5・A6・A8・B1・B2・C1・C3〜C6・D2・F1・F2（読み替えは F1・F2 のとおり）・G・H4・H5。A2・A7 は、上の優先順に置き換えて適用する。
 - 適用しない規則: A3・C2・E 全体・H1〜H3。
 
 ## B. 本体と利用者の成果物の分離
@@ -92,7 +92,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 ### B1. プラグイン本体は読み取り専用（必須）
 - `${CLAUDE_PLUGIN_ROOT}` には、実行時に何も書かない。成果物は作業側、状態は `${CLAUDE_PLUGIN_DATA}` に置く。
 - Python は、読み込んだモジュールの `__pycache__` を書く。入口は `python -B -I` で起動し、子プロセスの Python も `-B` で起動する。
-- 〔機械〕F1 の 11 の実行全体の前後で、`${CLAUDE_PLUGIN_ROOT}` のファイル一覧が変わらない。
+- 〔機械〕F1 の 10 の実行全体の前後で、`${CLAUDE_PLUGIN_ROOT}` のファイル一覧が変わらない。
 
 ### B2. 作業側へ写したものの更新手段を決める（推奨）
 - 本体のファイルを作業側へコピーする設計では、更新を届ける手段を README に書く。
@@ -120,7 +120,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 - `$ARGUMENTS` は、Bash のコマンド文字列に埋め込まない。クォートしても、`"` での脱出や `--yes` の混入を防げない。Write ツールでファイルに書き、パスだけを渡す。
 - `Bash(node *)` のような広い許可は書かない。agent の `tools` は、必要なものだけにする。
 - MCP は `mcp__<server>__*` でサーバー単位に絞る。
-- 使う MCP を利用者が決める（D1）agent は、`tools` を省略してよい。省略すると、メイン会話専用の一部のツールを除いて、利用できるすべてのツールを継承する。理由を、直下の README の安全の節に書く。
+- 使う MCP を利用者が決める agent は、`tools` を省略してよい。省略すると、メイン会話専用の一部のツールを除いて、利用できるすべてのツールを継承する。理由を、直下の README の安全の節に書く。
 - プラグインの agent では、`hooks`・`mcpServers`・`permissionMode`・`initialPrompt` は無視される。
 
 ### C4. 細則は references に置く（推奨）
@@ -137,11 +137,6 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 - `$ARGUMENTS` の渡し方は、C3 に従う。
 
 ## D. 外部依存
-
-### D1. MCP は同梱しない（必須）
-- `.mcp.json`、`.mcpb` ファイル、plugin.json と marketplace.json の `mcpServers` を置かない。公式は同梱を認めているが、この規則では禁止する。
-- 利用者が用意した MCP を使う。禁止の理由は、同梱すると、利用者の承認なしにツールの範囲が広がるため。指定は、`userConfig`（公式の設定項目）か `${CLAUDE_PLUGIN_DATA}` に保存してよい。
-- 指定がない、または MCP が使えないときは、代替手段か案内を出して止まる。推測でツールを探さない。
 
 ### D2. 取り込んだものの出典を書く（必須）
 - 他者の文書・コードを取り込むときは、出典とライセンスを `NOTICE` に書く。README の「出典」節に併記してよいが、README だけでは足りない。
@@ -160,7 +155,7 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 ### E3. リポジトリの構成（推奨）
 - 二重構造を既定とする。`plugins/<名前>/` が本体、marketplace.json の `source` が `./plugins/<名前>` である。
 - tests・docs・見本は、本体の外（リポジトリ直下）に置く。
-- 直下をプラグインにするのは、tests・docs・見本のない極小のものだけにする。F1 は tests を前提にするので、この場合の F1 は、`claude plugin validate --strict`（8）と目視で代える。`source` は `"."` にする（下の `./` で始める規則の例外）。
+- 直下をプラグインにするのは、tests・docs・見本のない極小のものだけにする。F1 は tests を前提にするので、この場合の F1 は、`claude plugin validate --strict`（7）と目視で代える。`source` は `"."` にする（下の `./` で始める規則の例外）。
 - README は直下に 1 つだけ置く。`plugins/<名前>/README.md` は作らない。
 - 利用者向けの詳細（H1・H4・A8・D2・H3・B2）を、直下の README に書く。開発者向けの案内は書かない。
 - 相対パスの `source` は `./` で始め、`..` を含めない。
@@ -186,17 +181,16 @@ Claude Code のスキル・プラグインを作る・変更するときに従�
 2. SKILL.md と agent に、絶対パス（`C:/Users` など）がない。プラグイン内では、`${CLAUDE_SKILL_DIR}` もない。
 3. SKILL.md が書く `${CLAUDE_PLUGIN_ROOT}/…` が指すファイルが実在する。
 4. 相対リンク・地の文の相対パスがない。
-5. MCP を同梱していない（D1）。
-6. version が、メタとコードで一致している（配布するとき）。
-7. 配布に必要なファイルが git 管理下にある。
-8. `claude plugin validate <dir> --strict` が終了コード 0 で通る。
+5. version が、メタとコードで一致している（配布するとき）。
+6. 配布に必要なファイルが git 管理下にある。
+7. `claude plugin validate <dir> --strict` が終了コード 0 で通る。
 
 専用環境を持つ場合は、さらに次もテストにする。
-9. `requirements.txt` に `==` のない行がない（Node は lockfile がある）。
-10. 環境がないときに入口スクリプトが終了コード 3、置き場の指定がないときに終了コード 2（単体スキルを除く）で止まる。
-11. A2 の〔機械〕(a)〜(c)。実行の前後で `${CLAUDE_PLUGIN_ROOT}` のファイル一覧が変わらないこと（B1）も、同じ実行で確かめる。
+8. `requirements.txt` に `==` のない行がない（Node は lockfile がある）。
+9. 環境がないときに入口スクリプトが終了コード 3、置き場の指定がないときに終了コード 2（単体スキルを除く）で止まる。
+10. A2 の〔機械〕(a)〜(c)。実行の前後で `${CLAUDE_PLUGIN_ROOT}` のファイル一覧が変わらないこと（B1）も、同じ実行で確かめる。
 
-- 単体スキルには、1・2・4を適用し、専用環境を持つ場合は 9〜11 も適用する。2 は絶対パスだけを調べ、`${CLAUDE_SKILL_DIR}` は調べない。3 は `${CLAUDE_SKILL_DIR}/…` の実在を確かめる。5〜8 は適用しない。
+- 単体スキルには、1・2・4を適用し、専用環境を持つ場合は 8〜10 も適用する。2 は絶対パスだけを調べ、`${CLAUDE_SKILL_DIR}` は調べない。3 は `${CLAUDE_SKILL_DIR}/…` の実在を確かめる。5〜7 は適用しない。
 
 ### F2. 追加の検査（推奨）
 - SKILL.md に書いたコマンドが実在し、待機や再試行の上限と超えたときの動きが書かれている。
@@ -232,7 +226,7 @@ F1 に入れていない項目を、レビュー時に目視で確認する。
 - Windows 専用のときは、README と plugin.json の `description` に書く。
 
 ### H2. 名前（必須）〔公式〕
-- プラグイン名は kebab-case にする。`claude-`・`anthropic-`・`anthropics-`・`cc-plugin-` で始めず、`claude`・`anthropic`・`anthropics`・`claude-code`・`claude-mods` そのものにしない。`claude`・`anthropic`・`anthropics` を単語として含む名前は、warning になる。`--strict`（F1 の 8）で落ちるので使わない。
+- プラグイン名は kebab-case にする。`claude-`・`anthropic-`・`anthropics-`・`cc-plugin-` で始めず、`claude`・`anthropic`・`anthropics`・`claude-code`・`claude-mods` そのものにしない。`claude`・`anthropic`・`anthropics` を単語として含む名前は、warning になる。`--strict`（F1 の 7）で落ちるので使わない。
 - `official` を `claude`・`anthropic` の隣に置かない。
 - marketplace 名に、予約語を使わない。予約語は、`inline`・`builtin`・`skills-dir`・`synced`・`claude-plugin-test`・`npm`・`pip`・`uv`・`cargo`・`github`・`gh`・公式の marketplace 名（`claude-plugins-official` など）・`claude-community`・`healthcare`・`anthropic-plugin-directory`・`claude-plugin-directory`・JavaScript の prototype 名（`constructor` など）・なりすましに見える名前（`official-claude-plugins` など）。`claudeai-` で始まる名前も使わない。一覧の正本は、公式の marketplace-reference の「Reserved names」である。
 
