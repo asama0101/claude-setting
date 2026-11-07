@@ -97,7 +97,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$HOME/.claude/hooks/git_flow.py\" session-start 2>/dev/null || python3 \"$HOME/.claude/hooks/git_flow.py\" session-start 2>/dev/null || python \"$HOME/.claude/hooks/git_flow.py\" session-start 2>/dev/null || true",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" session-start || python3 \"$HOME/.claude/hooks/git_flow.py\" session-start || python \"$HOME/.claude/hooks/git_flow.py\" session-start || true",
             "timeout": 15
           }
         ]
@@ -109,7 +109,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$HOME/.claude/hooks/git_flow.py\" pre-tool 2>/dev/null || python3 \"$HOME/.claude/hooks/git_flow.py\" pre-tool 2>/dev/null || python \"$HOME/.claude/hooks/git_flow.py\" pre-tool 2>/dev/null || true",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" pre-tool || python3 \"$HOME/.claude/hooks/git_flow.py\" pre-tool || python \"$HOME/.claude/hooks/git_flow.py\" pre-tool || true",
             "timeout": 15
           }
         ]
@@ -119,7 +119,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python3 \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || true",
+            "command": "py \"$HOME/.claude/hooks/notify.py\" || python3 \"$HOME/.claude/hooks/notify.py\" || python \"$HOME/.claude/hooks/notify.py\" || true",
             "timeout": 10
           }
         ]
@@ -131,7 +131,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$HOME/.claude/hooks/git_flow.py\" post-tool 2>/dev/null || python3 \"$HOME/.claude/hooks/git_flow.py\" post-tool 2>/dev/null || python \"$HOME/.claude/hooks/git_flow.py\" post-tool 2>/dev/null || true",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" post-tool || python3 \"$HOME/.claude/hooks/git_flow.py\" post-tool || python \"$HOME/.claude/hooks/git_flow.py\" post-tool || true",
             "timeout": 15
           }
         ]
@@ -142,7 +142,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || python3 \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || python \"$HOME/.claude/hooks/git_flow.py\" stop 2>/dev/null || true",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" stop || python3 \"$HOME/.claude/hooks/git_flow.py\" stop || python \"$HOME/.claude/hooks/git_flow.py\" stop || true",
             "timeout": 15
           }
         ]
@@ -151,7 +151,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python3 \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || true",
+            "command": "py \"$HOME/.claude/hooks/notify.py\" || python3 \"$HOME/.claude/hooks/notify.py\" || python \"$HOME/.claude/hooks/notify.py\" || true",
             "timeout": 10
           }
         ]
@@ -163,7 +163,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python3 \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || python \"$HOME/.claude/hooks/notify.py\" 2>/dev/null || true",
+            "command": "py \"$HOME/.claude/hooks/notify.py\" || python3 \"$HOME/.claude/hooks/notify.py\" || python \"$HOME/.claude/hooks/notify.py\" || true",
             "timeout": 10
           }
         ]
@@ -172,7 +172,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "py \"$HOME/.claude/statusline.py\" 2>/dev/null || python3 \"$HOME/.claude/statusline.py\" 2>/dev/null || python \"$HOME/.claude/statusline.py\" 2>/dev/null || true",
+    "command": "py \"$HOME/.claude/statusline.py\" || python3 \"$HOME/.claude/statusline.py\" || python \"$HOME/.claude/statusline.py\" || true",
     "refreshInterval": 30
   },
   "enabledPlugins": {
@@ -213,13 +213,7 @@
   },
   "language": "japanese",
   "effortLevel": "high",
-  "modelSettings": {
-    "claude-opus-5-5": {
-      "effortLevel": "high"
-    }
-  },
   "tui": "fullscreen",
-  "skipWorkflowUsageWarning": true,
   "theme": "dark",
   "remoteControlAtStartup": true,
   "inputNeededNotifEnabled": true,
