@@ -728,10 +728,10 @@ def bash_env(path, home):
     return e
 
 
-def test_settings_ベアな環境でも各hookとstatuslineはエラー出力なしで終了コード0(settings, tmp_path):
+def test_settings_ベアな環境でも各hookはエラー出力なしで終了コード0(settings, tmp_path):
     bash = find_bash()
     bare_env = bash_env(str(bash.parent), tmp_path)
-    for c in [*all_hook_commands(settings), settings["statusLine"]["command"]]:
+    for c in all_hook_commands(settings):
         r = subprocess.run([str(bash), "-c", c], env=bare_env, capture_output=True, input=b"{}",
                            timeout=60, check=False)
         assert (r.returncode, r.stdout, r.stderr) == (0, b"", b""), c
@@ -741,28 +741,6 @@ def test_settings_powershellツールは明示的に無効にする(settings):
     # Hook と permissions.ask は Bash ツールだけを対象にする。PowerShell ツールが有効だと、これらを通らない
     assert settings["env"]["CLAUDE_CODE_USE_POWERSHELL_TOOL"] == "0"
     assert settings["env"]["CLAUDE_CODE_ENABLE_TODO_TOOLS"] == "1"  # 既存の項目は残る
-
-
-def test_settings_statuslineもpy_python3_pythonの順に試す形(settings):
-    c = settings["statusLine"]["command"]
-    assert re.fullmatch(
-        r'py (?P<a>"[^"]+") 2>/dev/null \|\| python3 (?P=a) 2>/dev/null '
-        r'\|\| python (?P=a) 2>/dev/null \|\| true', c), c
-    assert "statusline.py" in c
-
-
-def test_statuslineのコマンドはpyがなくてもpythonで動き_出力はREADMEの例と同じ(settings, tmp_path):
-    bash = find_bash()
-    (tmp_path / ".claude").mkdir()
-    shutil.copy(ROOT / "statusline.py", tmp_path / ".claude" / "statusline.py")
-    path = os.pathsep.join([str(bash.parent), str(Path(sys.executable).parent)])  # py は PATH にない
-    r = subprocess.run(
-        [str(bash), "-c", settings["statusLine"]["command"]], env=bash_env(path, tmp_path), capture_output=True,
-        input=b'{"model":{"display_name":"Test"},"workspace":{"current_dir":"C:/work"}}', timeout=60, check=False,
-    )
-    plain = re.sub(r"\x1b\[[0-9;]*m", "", r.stdout.decode("utf-8"))
-    assert (r.returncode, r.stderr) == (0, b"")
-    assert plain.splitlines() == ["🤖 Test │ 📁 C:/work", "💬 ctx --"]
 
 
 def test_autocrlfが有効な環境でcloneしても_gitattributesがあれば作業ファイルはLF(tmp_path, git, env):
@@ -799,7 +777,7 @@ def test_settings_permissions_askの件数がreadmeと一致する(settings):
 
 def test_uncommitted_warnは削除され参照が残っていない():
     assert not (ROOT / "hooks" / "uncommitted_warn.py").exists()
-    for name in ("settings.json", "README.md", "global-CLAUDE.md", "statusline.py"):
+    for name in ("settings.json", "README.md", "global-CLAUDE.md"):
         assert "uncommitted_warn" not in (ROOT / name).read_text(encoding="utf-8"), name
     for p in (ROOT / "hooks").glob("*.py"):
         assert "uncommitted_warn" not in p.read_text(encoding="utf-8"), p.name
