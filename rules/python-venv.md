@@ -9,7 +9,7 @@ venv を作る・使うときに従う規則。1 は開発用の venv、2 はプ
 
 - 必須を外すときは、利用者に理由を示して了承を得る。
 - 確認方法を〔機械〕（コマンド）か〔目視〕（レビュー）で示す。
-- 2 は、`plugin-rules.md`（`~/.claude/reference/`）の A1・A4・A5・A6・A7・H5 の Python の部分。
+- 2 は、`plugin-rules.md`（`~/.claude/reference/`）の A1・A4・A5・A6・A7・H3 の Python の部分。
 - 用語（専用環境・置き場・入口スクリプト）は `plugin-rules.md` の「用語」に従う。
 
 ## 1. 開発用の venv
@@ -24,11 +24,13 @@ venv を作る・使うときに従う規則。1 は開発用の venv、2 はプ
 
 - 本体は専用 venv の中だけで実行する。
 - システムの Python は入口スクリプトの起動にだけ使う。〔目視〕
-- 専用 venv の `python.exe` は `-I`、`-B` で起動する（A1・B1）。〔目視〕
+- 専用 venv は、置き場の直下の `venv\` に作る（実行ファイルは `venv\Scripts\python.exe`）。
+- 専用 venv の `python.exe` は `-B -I` で起動する（`-B` は `__pycache__` を書かず、`-I` は環境変数を読まない）。入口は 1 ファイルにする（`-I` は入口のフォルダを読まない）。〔目視〕
+- `python` を起動できないとき（Store のスタブなど）の案内（`py -3`）を SKILL.md に書く。
 
 ### 2-2. 依存は `requirements.txt` で `==` 固定する（必須。A4）
 
-- 版は、新しい venv に `requirements.txt` と開発用の依存（`requirements-dev.txt`）を入れて、全テストが通ったものにする。間接依存も `==` で固定する（`pip freeze`）。
+- 版は、新しい venv に `requirements.txt` と開発用の依存（`requirements-dev.txt`）を入れて、全テストが通ったものにする。間接依存も `==` で固定する（本体の依存だけの venv の `pip freeze`。`-e` と `@ file://` の行は除く）。
 - 版がずれたら、入口スクリプトが終了コード 3 で止める。再同期は承認後の `setup --yes` で行う。
 - 〔機械: `requirements.txt` に `==` のない行がない〕
 
@@ -47,6 +49,6 @@ venv を作る・使うときに従う規則。1 は開発用の venv、2 はプ
 
 - 入口スクリプトは、`.venv/` を自動検出しない。置き場は A7 に従う。〔目視〕
 
-### 2-6. ハッシュを固定する（推奨。H5）
+### 2-6. ハッシュを固定する（推奨。H3）
 
 - 依存は PyPI から取得し、可能なら `pip install --require-hashes` を使う。〔目視〕
