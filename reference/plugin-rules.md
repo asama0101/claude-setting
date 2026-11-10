@@ -56,7 +56,7 @@
 ## C. 出典
 
 ### C1. 出典を書く（必須）
-- 取り込んだ文書・コードの出典とライセンスは、プラグインのルート（`plugins/<名前>/NOTICE`）に書く。直下の README は配布物に入らない。
+- 取り込んだ文書・コードの出典とライセンスは、プラグインのルート（`plugins/<名前>/NOTICE`。直下がプラグインなら、リポジトリ直下の `NOTICE`）に書く。直下の README は配布物に入らない。
 
 ## D. 配布
 
@@ -67,7 +67,7 @@
 
 ### D2. リポジトリの構成（推奨）
 - 本体は `plugins/<名前>/`、`source` は `./plugins/<名前>`（`./` で始め、`..` を含めない）。tests・docs は直下に置く。
-- 直下をプラグインにするのは、tests・docs のない極小のものだけ。`source` は `"."`、E1 は `validate --strict` と目視で代える。
+- 直下をプラグインにするのは、tests・docs のない極小のものだけ。`source` は `"."`、E1 の代わりに `validate --strict` と目視で足りる（E1 の必須の例外）。
 - README は直下に 1 つ。対応 OS と、アンインストールで消えるもの・残るものを書く。章は、機能 → 前提条件 → 導入方法 → 使い方 →（設定）→ 困ったとき → ライセンスの順。
 - 直下に `CLAUDE.md`（コマンド・構成・守ること）を置き、git 管理に入れる。開発者向けの詳細は `docs/development.md` に書く。作業メモ（`docs/superpowers/` など）だけを `.gitignore` に入れる。
 - `.gitignore` に、`.venv/`・`__pycache__/`・`.pytest_cache/`・`.ruff_cache/`・`.superpowers/` を入れる（Python のとき）。
@@ -102,15 +102,17 @@ E1 にない項目を、レビューで目視する。
 - [ ] A1・A2 状態は `${CLAUDE_PLUGIN_DATA}` に置き、変数は引数で渡している
 - [ ] A3〜A5 README に依存関係があり、`doctor` で動作環境と版（GitHub 登録なら最新かどうか）を確認できる。インストール方法（オンライン・オフライン）がある
 - [ ] B1・B3・B4 description が揃い、`allowed-tools`・`tools` を絞り、`$ARGUMENTS` を埋め込まず、副作用に `disable-model-invocation: true` がある
-- [ ] C1・D1・D3 `NOTICE`、plugin.json、marketplace.json がある
+- [ ] C1・D1・D3 `NOTICE`、plugin.json（`author.name` は `<名前> contributors`）、marketplace.json がある
 - [ ] D4 hooks と `bin/` のコマンドを B2 に準じて書いている
 - [ ] G1・G2 対応 OS を明記し、予約名を使っていない
-- [ ] 推奨: D2・D4・E2・G3
+- [ ] D2 `CLAUDE.md` が git 管理下にあり、CI と `.gitignore` がそろっている（CI は重い準備が要るものなら省いてよい）
+- [ ] 推奨: D2 の構成・D4・E2・G3
 
 ## G. その他
 
 ### G1. 対応 OS を明記する（必須）
 - Windows 専用なら、README と plugin.json の `description` に書く。
+- 専用でないときは、README に動作を確かめた OS を書く（「専用」と書かない）。
 
 ### G2. 名前（必須）〔公式〕
 - プラグイン名は kebab-case。`claude-`・`anthropic-`・`anthropics-`・`cc-plugin-` で始めず、`claude`・`anthropic`・`anthropics`・`claude-code`・`claude-mods` そのものにしない。`official` を `claude`・`anthropic` の隣に置かない。
