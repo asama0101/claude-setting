@@ -26,6 +26,8 @@
 - 何も変更しない `doctor` サブコマンドで、依存を満たすかと現在の版を表示する。依存が不足なら、内容を表示して 0 以外の終了コードで止まる。
 - GitHub の marketplace から入れているときは、最新の版かも表示する。最新でないとき・取得できないときは、警告にとどめ、終了コードは 0 にする。
 - 呼び出し方を README に書く。
+- 表示の形式は自由。ただし、各項目の可否と対処の手順を出す。
+- スクリプトにできない点検（Claude が利用可能なツール・スキルを見て判定する）は、スクリプトを持たない `skills/doctor/SKILL.md`（`disable-model-invocation: true`）に手順として書く。終了コードの規則は適用しない。最新版の確認は、`known_marketplaces.json` の登録を見て、`raw.githubusercontent.com/<repo>/HEAD/<plugin.json のパス>` を取る。
 
 ### A5. インストール方法を README に書く（必須）
 - オンライン: marketplace の登録と、install のコマンド。
@@ -43,7 +45,7 @@
 - 絶対パス、`${CLAUDE_SKILL_DIR}`、相対リンク、地の文の相対パスは書かない（基準を統一する独自の規則）。
 
 ### B3. 権限を絞る（必須）〔公式〕
-- `allowed-tools` は、特定のスクリプトの特定のサブコマンドだけにする（例: `Bash(<起動コマンド> "${CLAUDE_PLUGIN_ROOT}/scripts/build" --data "${CLAUDE_PLUGIN_DATA}" build *)`）。`Bash(<起動コマンド> *)` のような広い許可は書かない。`allowed-tools` は事前承認で、他を禁じない。
+- `allowed-tools` は、特定のスクリプトの特定のサブコマンドだけにする（例: `Bash(<起動コマンド> "${CLAUDE_PLUGIN_ROOT}/scripts/build" --data "${CLAUDE_PLUGIN_DATA}" build *)`）。`Bash(<起動コマンド> *)` のような広い許可は書かない。利用者の承認が要る操作（環境の導入、元に戻せない削除・上書きなど）は、許可に入れない。サブコマンドで分けられず `--force` で上書きできるものは、承認の手順を SKILL.md に書く。`allowed-tools` は事前承認で、他を禁じない。
 - `$ARGUMENTS` は、Bash の文字列に埋め込まない（`"` での脱出で、別の引数が混入する）。ファイルに書き、パスを渡す。
 - agent の `tools` は、必要なものだけにする。MCP は `mcp__<server>__*` で絞る。MCP を利用者が決める agent だけは、省略してよい（全ツールを継承する。理由を README に書く）。
 - プラグインの agent では、`hooks`・`mcpServers`・`permissionMode`・`initialPrompt` は無視される。
@@ -59,17 +61,20 @@
 ## D. 配布
 
 ### D1. plugin.json（必須）〔公式〕
-- `.claude-plugin/plugin.json` に `name`・`version`・`description`・`author.name` を書く（公式の必須は `name`）。
+- `.claude-plugin/plugin.json` に `name`・`version`・`description`・`author.name`・`license`・`repository`・`keywords` を書く（公式の必須は `name`）。`author.name` は `<名前> contributors`。
 - version は、メタとコードで一致させ、更新を届けるときに上げる（書くと、変えるまで更新は届かない）。
 - agents・skills・commands・hooks は、`.claude-plugin/` に置かない。
 
 ### D2. リポジトリの構成（推奨）
 - 本体は `plugins/<名前>/`、`source` は `./plugins/<名前>`（`./` で始め、`..` を含めない）。tests・docs は直下に置く。
 - 直下をプラグインにするのは、tests・docs のない極小のものだけ。`source` は `"."`、E1 は `validate --strict` と目視で代える。
-- README は直下に 1 つ。対応 OS と、消えるもの・残るものを書く。
+- README は直下に 1 つ。対応 OS と、アンインストールで消えるもの・残るものを書く。章は、機能 → 前提条件 → 導入方法 → 使い方 →（設定）→ 困ったとき → ライセンスの順。
+- 直下に `CLAUDE.md`（コマンド・構成・守ること）を置き、git 管理に入れる。開発者向けの詳細は `docs/development.md` に書く。作業メモ（`docs/superpowers/` など）だけを `.gitignore` に入れる。
+- `.gitignore` に、`.venv/`・`__pycache__/`・`.pytest_cache/`・`.ruff_cache/`・`.superpowers/` を入れる（Python のとき）。
+- CI は GitHub Actions の `windows-latest` で、テストと lint を流す（`.github/workflows/test.yml`）。実行にブラウザなど重い準備が要るものは、省いてよい。
 
 ### D3. marketplace.json（必須）〔公式〕
-- `name`・`owner.name`・`plugins[].{name,source,description}` を書く。`plugins[].version` は書かない。
+- `name`・`owner.name`（`<名前> contributors`）・`metadata.description`・`plugins[].{name,source,description}` を書く。`plugins[].version` は書かない。
 
 ### D4. 配置と読み込み（推奨）
 - `plugins/<PLUGIN>/` 直下に、`.claude-plugin/plugin.json`・`skills/<SKILL>/SKILL.md`・スクリプト・依存の固定ファイルを置く。agent は `agents/`、hooks と `bin/` はルート直下。
