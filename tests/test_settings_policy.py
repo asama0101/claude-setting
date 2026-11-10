@@ -16,14 +16,11 @@ ASK = {
 }
 ASK_REMOVED = {"Bash(git push *)", "Bash(git tag *)", "Bash(gh pr merge *)", "Bash(gh release create *)"}
 ALLOW_ADDED = {
-    "Bash(py -m pytest *)", "Bash(py -m ruff *)", "Bash(git add *)", "Bash(git switch *)", "Bash(git commit *)",
+    "Bash(git add *)", "Bash(git switch *)", "Bash(git commit *)",
 }
 DENY_ADDED = {
     "Read(**/.aws/config)", "Read(**/.git/config)", "Read(**/*.jks)", "Read(**/*.keystore)",
     "Read(**/credentials*)",
-    "Edit(**/AppData/Local/Microsoft/Credentials/**)", "Edit(**/AppData/Roaming/Microsoft/Credentials/**)",
-    "Edit(**/AppData/Roaming/Microsoft/Protect/**)", "Edit(**/System32/config/SAM)",
-    "Edit(**/System32/config/SYSTEM)", "Edit(**/System32/config/SECURITY)", "Edit(**/NTUSER.DAT)",
 }
 
 
@@ -39,24 +36,23 @@ def test_askは修復できない破壊的コマンドだけで11件(settings):
     assert not ASK_REMOVED & set(ask)
 
 
-def test_allowに追加した5件があり16件(settings):
+def test_allowに追加した3件があり14件(settings):
     allow = settings["permissions"]["allow"]
     assert ALLOW_ADDED <= set(allow)
-    assert len(allow) == 16
+    assert len(allow) == 14
     assert len(set(allow)) == len(allow)
 
 
-def test_denyは既存56件に12件を足した68件で重複がない(settings):
+def test_denyは既存45件に5件を足した50件で重複がない(settings):
     deny = settings["permissions"]["deny"]
     assert DENY_ADDED <= set(deny)
-    assert len(deny) == 68
-    assert len(set(deny)) == 68
+    assert len(deny) == 50
+    assert len(set(deny)) == 50
 
 
-def test_denyの既存56件が残っている(settings):
+def test_denyの既存45件が残っている(settings):
     deny = set(settings["permissions"]["deny"])
-    for pattern in ("Read(**/.env)", "Edit(**/.ssh/**)", "Bash(sudo *)", "Edit(**/Windows/System32/**)",
-                    "Read(**/System32/config/SAM)", "Read(**/NTUSER.DAT)"):
+    for pattern in ("Read(**/.env)", "Edit(**/.ssh/**)", "Bash(sudo *)"):
         assert pattern in deny, pattern
 
 

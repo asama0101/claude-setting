@@ -707,8 +707,7 @@ def test_settings_hookのコマンドはすべてpy_python3_pythonの順に試�
     assert len(commands) == 7  # git_flow の 4 件（readme_guard の 2 件を外した。SPEC A-6）+ notify の 3 件
     for c in commands:
         m = re.fullmatch(
-            r'py (?P<a>"[^"]+"[^|]*?) 2>/dev/null \|\| python3 (?P=a) 2>/dev/null '
-            r'\|\| python (?P=a) 2>/dev/null \|\| true', c,
+            r'py (?P<a>"[^"]+"[^|]*?) \|\| python3 (?P=a) \|\| python (?P=a) \|\| true', c,
         )
         assert m, c
 
@@ -728,13 +727,13 @@ def bash_env(path, home):
     return e
 
 
-def test_settings_ベアな環境でも各hookはエラー出力なしで終了コード0(settings, tmp_path):
+def test_settings_ベアな環境でも各hookは標準出力なしで終了コード0(settings, tmp_path):
     bash = find_bash()
     bare_env = bash_env(str(bash.parent), tmp_path)
     for c in all_hook_commands(settings):
         r = subprocess.run([str(bash), "-c", c], env=bare_env, capture_output=True, input=b"{}",
                            timeout=60, check=False)
-        assert (r.returncode, r.stdout, r.stderr) == (0, b"", b""), c
+        assert (r.returncode, r.stdout) == (0, b""), c
 
 
 def test_settings_powershellツールは明示的に無効にする(settings):

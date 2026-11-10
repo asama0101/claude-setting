@@ -209,9 +209,9 @@ def test_script_runs_as_a_hook_and_stays_silent():
 
 SETTINGS_FILES = [ROOT / "settings.json", Path.home() / ".claude" / "settings.json"]
 NOTIFY_COMMAND = (
-    'py "$HOME/.claude/hooks/notify.py" 2>/dev/null'
-    ' || python3 "$HOME/.claude/hooks/notify.py" 2>/dev/null'
-    ' || python "$HOME/.claude/hooks/notify.py" 2>/dev/null || true'
+    'py "$HOME/.claude/hooks/notify.py"'
+    ' || python3 "$HOME/.claude/hooks/notify.py"'
+    ' || python "$HOME/.claude/hooks/notify.py" || true'
 )
 
 
