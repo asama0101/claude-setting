@@ -41,9 +41,18 @@
 
 - 終了コードは、`[NG]` が 1 件でもあれば 3、なければ 0 にする。`[任意]`・`[情報]` は影響しない。
 - 出力は、項目の行と対処の行だけにする。見出し・結果のまとめ・結びの文は付けない。
-- GitHub の marketplace から入れているときは、最新の版かも `[情報]` で表示する。最新でないとき・取得できないときも、`[情報]` にとどめる。
+- `プラグインのバージョン` の行は、先頭を `[情報] プラグインのバージョン: v<現在>` にして、状態ごとに次の文言を続ける。`<名前>` はプラグイン名。取得できなくても、`[NG]` にはしない。
+
+  | 状態 | 続ける文言 | 対処の行 |
+  |---|---|---|
+  | 最新 | `（最新です）` | なし |
+  | GitHub の marketplace に未登録 | `（GitHub のマーケットプレイスに登録していないため、最新かは確認しません）` | なし |
+  | 最新を取得できない | `（最新のバージョンを確認できませんでした: <理由>）` | `  → ネットワークにつながっているか、github.com への通信を止めていないかを確認する` |
+  | 更新がある | `（GitHub に v<最新> があります）` | `  → /plugin marketplace update <名前> を実行する` / `  → /plugin update <名前>@<名前> を実行する` / `  → Claude Code を開き直す` |
+
+- 最新の確認は、`known_marketplaces.json` に GitHub として登録されているときだけ行う。取得先は `raw.githubusercontent.com/<repo>/HEAD/<plugin.json のパス>`。現在のバージョンは、プラグイン自身の `plugin.json` から読む。
 - 呼び出し方を README に書く。
-- スクリプトにできない点検（Claude が利用可能なツール・スキルを見て判定する）は、スクリプトを持たない `skills/doctor/SKILL.md`（`disable-model-invocation: true`）に手順として書く。終了コードの規則は適用しない（表示の形式は同じにする）。最新版の確認は、`known_marketplaces.json` の登録を見て、`raw.githubusercontent.com/<repo>/HEAD/<plugin.json のパス>` を取る。
+- スクリプトにできない点検（Claude が利用可能なツール・スキルを見て判定する）は、スクリプトを持たない `skills/doctor/SKILL.md`（`disable-model-invocation: true`）に手順として書く。終了コードの規則は適用しない（表示の形式は同じにする）。
 
 ### A5. インストール方法を README に書く（必須）
 - オンライン: marketplace の登録と、install のコマンド。
