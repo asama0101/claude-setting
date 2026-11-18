@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_ENABLE_TODO_TOOLS": "1",
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "0"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git rev-parse *)",
+      "Bash(git branch)",
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(git add *)",
+      "Bash(git switch *)",
+      "Bash(git commit *)"
+    ],
+    "ask": [
+      "Bash(git reset --hard *)",
+      "Bash(git clean *)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore *)",
+      "Bash(git checkout .)",
+      "Bash(rm -r *)",
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(git switch --discard-changes *)",
+      "Bash(git switch -f *)",
+      "Bash(git switch --force *)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Edit(**/.env)",
+      "Read(**/.env.*)",
+      "Edit(**/.env.*)",
+      "Read(**/.ssh/**)",
+      "Edit(**/.ssh/**)",
+      "Read(**/.claude/.credentials.json)",
+      "Edit(**/.claude/.credentials.json)",
+      "Read(**/.git-credentials)",
+      "Edit(**/.git-credentials)",
+      "Read(**/.pypirc)",
+      "Edit(**/.pypirc)",
+      "Read(**/.azure/**)",
+      "Edit(**/.azure/**)",
+      "Read(**/*.key)",
+      "Edit(**/*.key)",
+      "Read(**/*.pem)",
+      "Edit(**/*.pem)",
+      "Read(**/id_rsa)",
+      "Edit(**/id_rsa)",
+      "Read(**/authorized_keys)",
+      "Edit(**/authorized_keys)",
+      "Read(**/id_ed25519)",
+      "Edit(**/id_ed25519)",
+      "Read(**/id_ecdsa)",
+      "Edit(**/id_ecdsa)",
+      "Read(**/.aws/credentials)",
+      "Edit(**/.aws/credentials)",
+      "Read(**/.config/gcloud/**)",
+      "Edit(**/.config/gcloud/**)",
+      "Read(**/.netrc)",
+      "Edit(**/.netrc)",
+      "Read(**/.npmrc)",
+      "Edit(**/.npmrc)",
+      "Read(**/.docker/config.json)",
+      "Edit(**/.docker/config.json)",
+      "Read(**/.kube/config)",
+      "Edit(**/.kube/config)",
+      "Bash(sudo *)",
+      "Read(**/*.ppk)",
+      "Edit(**/*.ppk)",
+      "Read(**/*.pfx)",
+      "Edit(**/*.pfx)",
+      "Read(**/*.p12)",
+      "Edit(**/*.p12)",
+      "Read(**/.aws/config)",
+      "Read(**/.git/config)",
+      "Read(**/*.jks)",
+      "Read(**/*.keystore)",
+      "Read(**/credentials*)"
+    ],
+    "defaultMode": "auto",
+    "disableBypassPermissionsMode": "disable"
+  },
+  "model": "sonnet",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" session-start || python3 \"$HOME/.claude/hooks/git_flow.py\" session-start || python \"$HOME/.claude/hooks/git_flow.py\" session-start || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" pre-tool || python3 \"$HOME/.claude/hooks/git_flow.py\" pre-tool || python \"$HOME/.claude/hooks/git_flow.py\" pre-tool || true",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/notify.py\" || python3 \"$HOME/.claude/hooks/notify.py\" || python \"$HOME/.claude/hooks/notify.py\" || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" post-tool || python3 \"$HOME/.claude/hooks/git_flow.py\" post-tool || python \"$HOME/.claude/hooks/git_flow.py\" post-tool || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/git_flow.py\" stop || python3 \"$HOME/.claude/hooks/git_flow.py\" stop || python \"$HOME/.claude/hooks/git_flow.py\" stop || true",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/notify.py\" || python3 \"$HOME/.claude/hooks/notify.py\" || python \"$HOME/.claude/hooks/notify.py\" || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py \"$HOME/.claude/hooks/notify.py\" || python3 \"$HOME/.claude/hooks/notify.py\" || python \"$HOME/.claude/hooks/notify.py\" || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "pr-review-toolkit@anthropic-plugin-directory": true,
+    "pj-lens@pj-lens": true,
+    "grill-form@grill-form": true,
+    "vault-kb@vault-kb": true,
+    "pptx-deck@pptx-deck": true,
+    "session-desk@session-desk": true
+  },
+  "extraKnownMarketplaces": {
+    "grill-form": {
+      "source": {
+        "source": "github",
+        "repo": "asama0101/grill-form"
+      }
+    },
+    "pj-lens": {
+      "source": {
+        "source": "github",
+        "repo": "asama0101/pj-lens"
+      }
+    },
+    "vault-kb": {
+      "source": {
+        "source": "github",
+        "repo": "asama0101/vault-kb"
+      }
+    },
+    "pptx-deck": {
+      "source": {
+        "source": "github",
+        "repo": "asama0101/pptx-deck"
+      }
+    },
+    "session-desk": {
+      "source": {
+        "source": "github",
+        "repo": "asama0101/session-desk"
+      }
+    }
+  },
+  "language": "japanese",
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "theme": "dark",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "attribution": {
+    "sessionUrl": false
+  },
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: assume private unless the remote host and repo name indicate otherwise, or a visibility check in the transcript shows public",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: None configured",
+      "**Default / protected branches**: unknown",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine or CI runner with open internet",
+      "**Source control**: The trusted repo and its remote(s) only (no additional orgs configured) — as scoped by the Trusted repo and Repository visibility entries above",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited — e.g. matches `prod-db`, not `producer`)",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development",
+      "**Trusted repo**: The git repository the agent started in and its configured remote(s), if any are added later",
+      "**Org-specific CLIs**: None configured"
+    ]
+  }
+}
