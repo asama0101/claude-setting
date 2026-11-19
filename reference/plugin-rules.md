@@ -72,9 +72,21 @@
 - 絶対パス、`${CLAUDE_SKILL_DIR}`、相対リンク、地の文の相対パスは書かない（基準を統一する独自の規則）。
 
 ### B3. 権限を絞る（必須）〔公式〕
-- `allowed-tools` は、特定のスクリプトの特定のサブコマンドだけにする（例: `Bash(<起動コマンド> "${CLAUDE_PLUGIN_ROOT}/scripts/build" --data "${CLAUDE_PLUGIN_DATA}" build *)`）。`Bash(<起動コマンド> *)` のような広い許可は書かない。利用者の承認が要る操作（環境の導入、元に戻せない削除・上書きなど）は、許可に入れない。サブコマンドで分けられず `--force` で上書きできるものは、承認の手順を SKILL.md に書く。`allowed-tools` は事前承認で、他を禁じない。
-- `$ARGUMENTS` は、Bash の文字列に埋め込まない（`"` での脱出で、別の引数が混入する）。ファイルに書き、パスを渡す。
-- agent の `tools` は、必要なものだけにする。MCP は `mcp__<server>__*` で絞る。MCP を利用者が決める agent だけは、省略してよい（全ツールを継承する。理由を README に書く）。
+**allowed-tools**
+- 書くのは、特定のスクリプトの特定のサブコマンドだけ。
+  - 例: `Bash(<起動コマンド> "${CLAUDE_PLUGIN_ROOT}/scripts/build" --data "${CLAUDE_PLUGIN_DATA}" build *)`
+- 書かないもの:
+  - `Bash(<起動コマンド> *)` のような広い許可。
+  - 利用者の承認が要る操作（環境の導入、元に戻せない削除・上書きなど）。
+- サブコマンドで分けられず `--force` で上書きできるものは、承認の手順を SKILL.md に書く。
+- `allowed-tools` は事前承認で、他を禁じない。
+
+**$ARGUMENTS**
+- Bash の文字列に埋め込まない（`"` での脱出で、別の引数が混入する）。ファイルに書き、パスを渡す。
+
+**agent**
+- `tools` は、必要なものだけにする。MCP は `mcp__<server>__*` で絞る。
+- MCP を利用者が決める agent だけは、省略してよい（全ツールを継承する。理由を README に書く）。
 - プラグインの agent では、`hooks`・`mcpServers`・`permissionMode` は無視される。
 
 ### B4. 副作用のあるスキルは自動起動させない（必須）〔公式〕
