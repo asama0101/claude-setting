@@ -141,6 +141,11 @@
 ### E2. 追加の検査（推奨）
 - SKILL.md のコマンドが実在し、待機・再試行の上限と、超えたときの動きが書かれている。廃止したものが残っていない。
 
+### E3. 目的の確認（必須）
+テストにできないので、完成前にレビューで目視する（F に載せる）。
+- 目的を 1 文で決める。README の 1 行説明・`plugin.json` と `marketplace.json` の `description`・各 SKILL.md の冒頭の概要が、その目的と同じことを言っている（食い違い・過不足がない）。
+- README の「使い方」にある最も基本的な例を、新しい環境で実行し、目的の結果が得られる。実行できないときは、報告に「未検証」と書く。
+
 ## F. チェックリスト
 
 E1 にない項目を、レビューで目視する。
@@ -148,6 +153,7 @@ E1 にない項目を、レビューで目視する。
 - [ ] A3〜A5 README に依存関係があり、`doctor` で動作環境と版（GitHub 登録なら最新かどうか）を確認できる。インストール方法（オンライン・オフライン）がある
 - [ ] B1・B3・B4 description が揃い、`allowed-tools`・`tools` を絞り、`$ARGUMENTS` を埋め込まず、副作用に `disable-model-invocation: true` がある
 - [ ] B5 SKILL.md の冒頭に概要があり、コマンドの前に何をするかの 1 行があり、長い手順が段階に分かれている
+- [ ] E3 目的の 1 文が、README・plugin.json・marketplace.json・SKILL.md で一致し、基本の使い方を実行して目的の結果を得た（または「未検証」と報告した）
 - [ ] C1・D1・D3 `NOTICE`、plugin.json（`author.name` は `<名前> contributors`）、marketplace.json がある
 - [ ] D4 hooks と `bin/` のコマンドを B2 に準じて書いている
 - [ ] G1・G2 対応 OS を明記し、予約名を使っていない
