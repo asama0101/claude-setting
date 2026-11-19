@@ -64,7 +64,7 @@
 
 ### B1. frontmatter と description（必須）
 - `name` と `description` を書く。`name` はディレクトリ名と一致させる（独自の規則）。
-- description に、何をするか、使う場面（利用者の言い回し）、使わない場面と代わりのスキルを書く。`disable-model-invocation: true` なら、最後は省く。
+- description に、何をするか、使う場面（利用者の言い回し）、使わない場面と代わりのスキルを書く。`disable-model-invocation: true` のスキルは、Claude が自動で選ばないので、使わない場面と代わりのスキルは省いてよい。
 - 〔公式〕description は `when_to_use` と合わせて 1,536 文字で切れる。
 
 ### B2. パスの書き方（必須）
