@@ -10,7 +10,6 @@
 ### A1. 状態は `${CLAUDE_PLUGIN_DATA}` に置く（必須）〔公式〕
 - 状態は `${CLAUDE_PLUGIN_DATA}` に置く。成果物は作業側に置く。
 - `${CLAUDE_PLUGIN_ROOT}` は更新で入れ替わるので、実行時に何も書かない。
-- `--plugin-dir` では、`${CLAUDE_PLUGIN_DATA}` が本番と別になる。
 
 ### A2. 変数は引数で渡す（必須）〔公式〕
 - 変数は SKILL.md と agent の本文に書き、スクリプトには引数で渡す。Bash の環境変数には入らない。
@@ -63,7 +62,7 @@
 ### B1. frontmatter と description（必須）
 - `name` と `description` を書く。`name` はディレクトリ名と一致させる（独自の規則）。
 - description に、何をするか、使う場面（利用者の言い回し）、使わない場面と代わりのスキルを書く。`disable-model-invocation: true` なら、最後は省く。
-- 〔公式〕description は `when_to_use` と合わせて 1,536 文字で切れる。未知のキーは無視されるので、綴りを確かめる。
+- 〔公式〕description は `when_to_use` と合わせて 1,536 文字で切れる。
 
 ### B2. パスの書き方（必須）
 - コマンドは、`${CLAUDE_PLUGIN_ROOT}/…` を基準にする。
@@ -73,7 +72,7 @@
 - `allowed-tools` は、特定のスクリプトの特定のサブコマンドだけにする（例: `Bash(<起動コマンド> "${CLAUDE_PLUGIN_ROOT}/scripts/build" --data "${CLAUDE_PLUGIN_DATA}" build *)`）。`Bash(<起動コマンド> *)` のような広い許可は書かない。利用者の承認が要る操作（環境の導入、元に戻せない削除・上書きなど）は、許可に入れない。サブコマンドで分けられず `--force` で上書きできるものは、承認の手順を SKILL.md に書く。`allowed-tools` は事前承認で、他を禁じない。
 - `$ARGUMENTS` は、Bash の文字列に埋め込まない（`"` での脱出で、別の引数が混入する）。ファイルに書き、パスを渡す。
 - agent の `tools` は、必要なものだけにする。MCP は `mcp__<server>__*` で絞る。MCP を利用者が決める agent だけは、省略してよい（全ツールを継承する。理由を README に書く）。
-- プラグインの agent では、`hooks`・`mcpServers`・`permissionMode`・`initialPrompt` は無視される。
+- プラグインの agent では、`hooks`・`mcpServers`・`permissionMode` は無視される。
 
 ### B4. 副作用のあるスキルは自動起動させない（必須）〔公式〕
 - 外部への送信、不可逆な書き込み、常駐（`monitors` を含む）をするスキルは、`disable-model-invocation: true` にする。
@@ -99,7 +98,7 @@
 - CI は GitHub Actions の `windows-latest` で、テストと lint を流す（`.github/workflows/test.yml`）。実行にブラウザなど重い準備が要るものは、省いてよい。
 
 ### D3. marketplace.json（必須）〔公式〕
-- `name`・`owner.name`（`<名前> contributors`）・`metadata.description`・`plugins[].{name,source,description}` を書く。`plugins[].version` は書かない。
+- `name`・`owner.name`（`<名前> contributors`）・`description`（最上位。`metadata.description` は旧形式）・`plugins[].{name,source,description}` を書く。`plugins[].version` は書かない（独自の規則。`plugin.json` の version が常に優先され、二重に書くと食い違いで更新が届かなくなるため）。
 
 ### D4. 配置と読み込み（推奨）
 - `plugins/<PLUGIN>/` 直下に、`.claude-plugin/plugin.json`・`skills/<SKILL>/SKILL.md`・スクリプト・依存の固定ファイルを置く。agent は `agents/`、hooks と `bin/` はルート直下。
@@ -140,8 +139,8 @@ E1 にない項目を、レビューで目視する。
 - 専用でないときは、README に動作を確かめた OS を書く（「専用」と書かない）。
 
 ### G2. 名前（必須）〔公式〕
-- プラグイン名は kebab-case。`claude-`・`anthropic-`・`anthropics-`・`cc-plugin-` で始めず、`claude`・`anthropic`・`anthropics`・`claude-code`・`claude-mods` そのものにしない。`official` を `claude`・`anthropic` の隣に置かない。
-- marketplace 名に、公式の「Reserved names」（`inline`・`builtin`・`npm`・`github` など）と、`claudeai-` で始まる名前を使わない。
+- プラグイン名は kebab-case。
+- marketplace 名に、公式の「Reserved names」（`claude-code-marketplace`・`claude-code-plugins`・`claude-plugins-official`・`claude-plugins-community`・`claude-community`・`anthropic-marketplace`・`anthropic-plugins`・`agent-skills`・`anthropic-agent-skills`・`knowledge-work-plugins`・`life-sciences`・`claude-for-legal`・`claude-for-financial-services`・`financial-services-plugins`）を使わない。公式を装う名前（`official-claude-plugins`・`anthropic-tools-v2` など）も拒否される。
 
 ### G3. 依存の取得元とパス（推奨）
 - 依存は公式のレジストリから取得し、可能ならハッシュも固定する。
