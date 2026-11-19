@@ -171,5 +171,5 @@ E1 にない項目を、レビューで目視する。
 - marketplace 名に、公式の「Reserved names」（`claude-code-marketplace`・`claude-code-plugins`・`claude-plugins-official`・`claude-plugins-community`・`claude-community`・`anthropic-marketplace`・`anthropic-plugins`・`agent-skills`・`anthropic-agent-skills`・`knowledge-work-plugins`・`life-sciences`・`claude-for-legal`・`claude-for-financial-services`・`financial-services-plugins`）を使わない。公式を装う名前（`official-claude-plugins`・`anthropic-tools-v2` など）も拒否される。
 
 ### G3. 依存の取得元とパス（推奨）
-- 依存は公式のレジストリから取得し、可能ならハッシュも固定する。
+- 依存は公式のレジストリから取得し、版を固定する。
 - パスをクォートし、空白・日本語のパスでも動くことをテストする。
