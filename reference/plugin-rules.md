@@ -107,7 +107,7 @@
 ### D2. リポジトリの構成（推奨）
 - 本体は `plugins/<名前>/`、`source` は `./plugins/<名前>`（`./` で始め、`..` を含めない）。tests・docs は直下に置く。
 - 直下をプラグインにするのは、tests・docs のない極小のものだけ。`source` は `"."`、E1 の代わりに `validate --strict` と目視で足りる（E1 の必須の例外）。
-- README は直下に 1 つ。対応 OS と、アンインストールで消えるもの・残るものを書く。章は、機能 → 前提条件 → 導入方法 → 使い方 →（設定）→ 困ったとき → ライセンスの順。
+- README は直下に 1 つ。対応 OS と、アンインストールで消えるもの・残るものを書く。章は、機能 → 導入方法 → 使い方 →（設定）→ 困ったとき → ライセンスの順。前提条件の章は置かず、前提は導入方法の冒頭に書く。オフラインで入れる手順とアンインストールは、導入方法の小見出しに置く。
 - 直下に `CLAUDE.md`（コマンド・構成・守ること）を置き、git 管理に入れる。開発者向けの詳細は `docs/development.md` に書く。作業メモ（`docs/superpowers/` など）だけを `.gitignore` に入れる。
 - `.gitignore` に、`.venv/`・`__pycache__/`・`.pytest_cache/`・`.ruff_cache/`・`.superpowers/` を入れる（Python のとき）。
 - CI は GitHub Actions の `windows-latest` で、テストと lint を流す（`.github/workflows/test.yml`）。実行にブラウザなど重い準備が要るものは、省いてよい。

@@ -10,7 +10,9 @@ Claude Code を Windows で使う人が、作業ルールと git 操作の確認
 - Git/GitHub のフロー（作業ブランチ → コミット → push → PR → squash マージ（ユーザーが行う）→ タグ・リリース）を、hook（セッションの開始・ツールの実行・応答の終了の節目で自動実行されるコマンド）が知らせ、守らせる。フローの詳細は [reference/git-flow.md](reference/git-flow.md) にある。別の作業をしていても気づけるよう、許可の確認・選択肢の質問・質問や依頼で終わる応答のときに、Windows のトースト通知（画面の隅に出る通知）を出す（作業が終わっただけの応答では出ない）。
 - コードの変更を最小にするスキル `ponytail`（`skills/`）が使える。
 
-## 前提条件
+## 導入方法
+
+必要なものは次のとおり。
 
 - Windows 11（動作確認は Windows 11）。
 - Python Launcher（`py` コマンド）。確認: `py --version`（動作確認した版は 3.14.3）。
@@ -19,8 +21,6 @@ Claude Code を Windows で使う人が、作業ルールと git 操作の確認
 - PowerShell 5.1 以降。導入の手順は、PowerShell で実行する。確認: `$PSVersionTable.PSVersion`（動作確認した版は 5.1）。hook のコマンドは、Git Bash でも PowerShell でも動く。
 - トースト通知を見るには、Windows の設定で PowerShell の通知をオンにし、集中モード（通知を止める設定）をオフにする。
 - Claude Code。確認: `claude --version`（動作確認した版は 2.1.316）。
-
-## 導入方法
 
 ### 始める前の注意（ファイルを上書きします）
 
