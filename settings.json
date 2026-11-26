@@ -176,6 +176,7 @@
     "claude-md-management@claude-plugins-official": true,
     "pr-review-toolkit@anthropic-plugin-directory": true
   },
+  "skipWorkflowUsageWarning": true,
   "language": "japanese",
   "effortLevel": "high",
   "tui": "fullscreen",

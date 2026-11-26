@@ -127,7 +127,7 @@ foreach ($f in 'CLAUDE.md','settings.json','hooks','reference','rules','skills')
 | `theme` | `dark` | 配色。 |
 | `tui` | `fullscreen` | 画面の表示方式。 |
 
-表にない `autoMode`・`env`・`effortLevel`・`inputNeededNotifEnabled`・`agentPushNotifEnabled` も、作者個人の設定である。
+表にない `autoMode`・`env`・`effortLevel`・`skipWorkflowUsageWarning`・`inputNeededNotifEnabled`・`agentPushNotifEnabled` も、作者個人の設定である。
 
 - `deny` は、`.env`・`.ssh`・認証情報の鍵ファイルの読み書きを、Claude Code の読み書きのツール（Read・Edit）に対して拒否する。`allow` にある `Bash(cat *)` などの経由で読めるかは、未確認である。プロジェクトの `.env.example` や `.npmrc` の編集も、拒否される。
 - `defaultMode: auto` は、利用できるプランやモデルが限られる。使えない環境で、どう動くかは未確認である。`allow` の `git commit *` は、確認なしでコミットする。
